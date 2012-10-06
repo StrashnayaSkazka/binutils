@@ -99,18 +99,19 @@
 #define ARG_TYPE_UIMM    0x01
 
 /* Register types */
-#define ARG_TYPE_REG     0x08
-#define ARG_TYPE_REG_SPL 0x04
-#define ARG_TYPE_INV     0x00
+#define ARG_TYPE_REG       0x08
+#define ARG_TYPE_REG_FLOAT 0x04
+#define ARG_TYPE_REG_SPL   0x02
+#define ARG_TYPE_INV       0x00
 
 /* The maximum registers an opcode can have as args. */
 #define ARG_MAX_REGS 5
 #define ARG_MAX 5
 
 /* Build an int with thes 5 bit values */
-#define OP_BUILD5(a0, a1, a2, a3, a4) (((a0)&0x1f)<<0 | ((a1)&0x1f)<<1 | ((a2)&0x1f)<<2 | ((a3)&0x1f)<<3 | ((a4)&0x1f)<<4)
+#define OP_BUILD5(a0, a1, a2, a3, a4) (((a0)&0x1f)<<0 | ((a1)&0x1f)<<5 | ((a2)&0x1f)<<10 | ((a3)&0x1f)<<15 | ((a4)&0x1f)<<20)
 /* Get a field from the above */
-#define OP_BREAD5(i, bitfield) (((bitfield)>>(i)) & 0x1f)
+#define OP_BREAD5(i, bitfield) (((bitfield)>>((i)*5)) & 0x1f)
 /* Get an op's mask */
 #define ARG_MASK(i, op)  ((1<<OP_BREAD5(i, op->arg_mask))-1)
 #define ARG_SHIFT(i, op) (OP_BREAD5(i, op->arg_shift))
@@ -139,8 +140,86 @@ struct op_code_struct
     /* More info about output format here.  */
 } opcodes[MAX_OPCODES] =
 {
-
-    {"sll",   OP_BUILD5(11, 16, 6, 0, 0), OP_BUILD5(5, 5, 5, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_REG, 0, 0), INST_NO_OFFSET, NO_DELAY_SLOT, -1,  0x00000000, OPCODE_MAST_MM, sll,    barrel_shift_inst },
+    /* Begin generated code: opcodes */
+{"sll", OP_BUILD5(5, 5, 5, 0, 0), OP_BUILD5(11, 16, 6, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_IMM, 0, 0), 0, 0, 2, 0x0, 0xfc000000, nwop_sll, anyware_inst},
+{"srl", OP_BUILD5(5, 5, 5, 0, 0), OP_BUILD5(11, 16, 6, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_IMM, 0, 0), 0, 0, 2, 0x2, 0xfc0007ff, nwop_srl, anyware_inst},
+{"rotr", OP_BUILD5(5, 5, 5, 0, 0), OP_BUILD5(11, 16, 6, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_IMM, 0, 0), 0, 0, 2, 0x402, 0xfc0007ff, nwop_rotr, anyware_inst},
+{"sra", OP_BUILD5(5, 5, 5, 0, 0), OP_BUILD5(11, 16, 6, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_IMM, 0, 0), 0, 0, 2, 0x3, 0xfc00003f, nwop_sra, anyware_inst},
+{"slv", OP_BUILD5(5, 5, 5, 0, 0), OP_BUILD5(11, 21, 16, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_REG, 0, 0), 0, 0, -1, 0x4, 0xfc00003f, nwop_slv, anyware_inst},
+{"srlv", OP_BUILD5(5, 5, 5, 0, 0), OP_BUILD5(11, 21, 16, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_REG, 0, 0), 0, 0, -1, 0x6, 0xffe0003f, nwop_srlv, anyware_inst},
+{"rotrv", OP_BUILD5(5, 5, 5, 0, 0), OP_BUILD5(11, 21, 16, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_REG, 0, 0), 0, 0, -1, 0x2000006, 0xffe0003f, nwop_rotrv, anyware_inst},
+{"srav", OP_BUILD5(5, 5, 5, 0, 0), OP_BUILD5(11, 21, 16, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_REG, 0, 0), 0, 0, -1, 0x7, 0xfc00003f, nwop_srav, anyware_inst},
+{"waket", OP_BUILD5(5, 0, 0, 0, 0), OP_BUILD5(21, 0, 0, 0, 0), OP_BUILD5(ARG_TYPE_REG, 0, 0, 0, 0), 0, 0, -1, 0x200008, 0xffe0003f, nwop_waket, anyware_inst},
+{"jr", OP_BUILD5(5, 0, 0, 0, 0), OP_BUILD5(21, 0, 0, 0, 0), OP_BUILD5(ARG_TYPE_REG, 0, 0, 0, 0), 0, 0, -1, 0x8, 0xfc00003f, nwop_jr, anyware_inst},
+{"jalr", OP_BUILD5(5, 0, 0, 0, 0), OP_BUILD5(21, 0, 0, 0, 0), OP_BUILD5(ARG_TYPE_REG, 0, 0, 0, 0), 0, 0, -1, 0x9, 0xfc00003f, nwop_jalr, anyware_inst},
+{"movz", OP_BUILD5(5, 5, 5, 0, 0), OP_BUILD5(11, 21, 16, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_REG, 0, 0), 0, 0, -1, 0xa, 0xfc00003f, nwop_movz, anyware_inst},
+{"movn", OP_BUILD5(5, 5, 5, 0, 0), OP_BUILD5(11, 21, 16, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_REG, 0, 0), 0, 0, -1, 0xb, 0xfc00003f, nwop_movn, anyware_inst},
+{"div", OP_BUILD5(5, 5, 5, 0, 0), OP_BUILD5(11, 21, 16, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_REG, 0, 0), 0, 0, -1, 0x1a, 0xfc00003f, nwop_div, anyware_inst},
+{"addu", OP_BUILD5(5, 5, 5, 0, 0), OP_BUILD5(11, 21, 16, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_REG, 0, 0), 0, 0, -1, 0x21, 0xfc00003f, nwop_addu, anyware_inst},
+{"sub", OP_BUILD5(5, 5, 5, 0, 0), OP_BUILD5(11, 21, 16, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_REG, 0, 0), 0, 0, -1, 0x22, 0xfc00003f, nwop_sub, anyware_inst},
+{"tmove", OP_BUILD5(5, 5, 5, 0, 0), OP_BUILD5(11, 21, 16, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_REG, 0, 0), 0, 0, -1, 0x22, 0xfc00003f, nwop_tmove, anyware_inst},
+{"subu", OP_BUILD5(5, 5, 5, 0, 0), OP_BUILD5(11, 21, 16, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_REG, 0, 0), 0, 0, -1, 0x23, 0xfc00003f, nwop_subu, anyware_inst},
+{"and", OP_BUILD5(5, 5, 5, 0, 0), OP_BUILD5(11, 21, 16, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_REG, 0, 0), 0, 0, -1, 0x24, 0xfc00003f, nwop_and, anyware_inst},
+{"or", OP_BUILD5(5, 5, 5, 0, 0), OP_BUILD5(11, 21, 16, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_REG, 0, 0), 0, 0, -1, 0x25, 0xfc00003f, nwop_or, anyware_inst},
+{"xor", OP_BUILD5(5, 5, 5, 0, 0), OP_BUILD5(11, 21, 16, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_REG, 0, 0), 0, 0, -1, 0x26, 0xfc00003f, nwop_xor, anyware_inst},
+{"nor", OP_BUILD5(5, 5, 5, 0, 0), OP_BUILD5(11, 21, 16, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_REG, 0, 0), 0, 0, -1, 0x27, 0xfc00003f, nwop_nor, anyware_inst},
+{"slt", OP_BUILD5(5, 5, 5, 0, 0), OP_BUILD5(11, 21, 16, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_REG, 0, 0), 0, 0, -1, 0x2a, 0xfc00003f, nwop_slt, anyware_inst},
+{"sltu", OP_BUILD5(5, 5, 5, 0, 0), OP_BUILD5(11, 21, 16, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_REG, 0, 0), 0, 0, -1, 0x2b, 0xfc00003f, nwop_sltu, anyware_inst},
+{"bal", OP_BUILD5(16, 0, 0, 0, 0), OP_BUILD5(0, 0, 0, 0, 0), OP_BUILD5(ARG_TYPE_IMM, 0, 0, 0, 0), 0, 0, 0, 0x2008800, 0xfc00f800, nwop_bal, anyware_inst},
+{"bltz", OP_BUILD5(16, 0, 0, 0, 0), OP_BUILD5(0, 0, 0, 0, 0), OP_BUILD5(ARG_TYPE_IMM, 0, 0, 0, 0), 0, 0, 0, 0x2000000, 0xfc00f800, nwop_bltz, anyware_inst},
+{"bgez", OP_BUILD5(16, 0, 0, 0, 0), OP_BUILD5(0, 0, 0, 0, 0), OP_BUILD5(ARG_TYPE_IMM, 0, 0, 0, 0), 0, 0, 0, 0x2008000, 0xfc00f800, nwop_bgez, anyware_inst},
+{"j", OP_BUILD5(26, 0, 0, 0, 0), OP_BUILD5(0, 0, 0, 0, 0), OP_BUILD5(ARG_TYPE_IMM, 0, 0, 0, 0), 0, 0, 0, 0x4000000, 0xfc000000, nwop_j, anyware_inst},
+{"jal", OP_BUILD5(26, 0, 0, 0, 0), OP_BUILD5(0, 0, 0, 0, 0), OP_BUILD5(ARG_TYPE_IMM, 0, 0, 0, 0), 0, 0, 0, 0x6000000, 0xfc000000, nwop_jal, anyware_inst},
+{"beq", OP_BUILD5(16, 0, 0, 0, 0), OP_BUILD5(0, 0, 0, 0, 0), OP_BUILD5(ARG_TYPE_IMM, 0, 0, 0, 0), 0, 0, 0, 0x8000000, 0xfc000000, nwop_beq, anyware_inst},
+{"bneq", OP_BUILD5(16, 0, 0, 0, 0), OP_BUILD5(0, 0, 0, 0, 0), OP_BUILD5(ARG_TYPE_IMM, 0, 0, 0, 0), 0, 0, 0, 0xa000000, 0xfc000000, nwop_bneq, anyware_inst},
+{"blez", OP_BUILD5(16, 0, 0, 0, 0), OP_BUILD5(0, 0, 0, 0, 0), OP_BUILD5(ARG_TYPE_IMM, 0, 0, 0, 0), 0, 0, 0, 0xc000000, 0xfc000000, nwop_blez, anyware_inst},
+{"bgtz", OP_BUILD5(16, 0, 0, 0, 0), OP_BUILD5(0, 0, 0, 0, 0), OP_BUILD5(ARG_TYPE_IMM, 0, 0, 0, 0), 0, 0, 0, 0xe000000, 0xfc000000, nwop_bgtz, anyware_inst},
+{"addiu", OP_BUILD5(5, 5, 16, 0, 0), OP_BUILD5(16, 21, 0, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_IMM, 0, 0), 0, 0, 2, 0x12000000, 0xfc000000, nwop_addiu, anyware_inst},
+{"slti", OP_BUILD5(5, 5, 16, 0, 0), OP_BUILD5(16, 21, 0, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_IMM, 0, 0), 0, 0, 2, 0x14000000, 0xfc000000, nwop_slti, anyware_inst},
+{"sltiu", OP_BUILD5(5, 5, 16, 0, 0), OP_BUILD5(16, 21, 0, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_IMM, 0, 0), 0, 0, 2, 0x16000000, 0xfc000000, nwop_sltiu, anyware_inst},
+{"andi", OP_BUILD5(5, 5, 16, 0, 0), OP_BUILD5(16, 21, 0, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_IMM, 0, 0), 0, 0, 2, 0x18000000, 0xfc000000, nwop_andi, anyware_inst},
+{"ori", OP_BUILD5(5, 5, 16, 0, 0), OP_BUILD5(16, 21, 0, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_IMM, 0, 0), 0, 0, 2, 0x1a000000, 0xfc000000, nwop_ori, anyware_inst},
+{"xori", OP_BUILD5(5, 5, 16, 0, 0), OP_BUILD5(16, 21, 0, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_IMM, 0, 0), 0, 0, 2, 0x1c000000, 0xfc000000, nwop_xori, anyware_inst},
+{"lui", OP_BUILD5(5, 16, 0, 0, 0), OP_BUILD5(16, 0, 0, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_IMM, 0, 0, 0), 0, 0, 1, 0x1e000000, 0xfc000000, nwop_lui, anyware_inst},
+{"bc1t", OP_BUILD5(16, 0, 0, 0, 0), OP_BUILD5(0, 0, 0, 0, 0), OP_BUILD5(ARG_TYPE_IMM, 0, 0, 0, 0), 0, 0, 0, 0x22008080, 0xfc00ffc0, nwop_bc1t, anyware_inst},
+{"bc1f", OP_BUILD5(16, 0, 0, 0, 0), OP_BUILD5(0, 0, 0, 0, 0), OP_BUILD5(ARG_TYPE_IMM, 0, 0, 0, 0), 0, 0, 0, 0x22000080, 0xfc00ffc0, nwop_bc1f, anyware_inst},
+{"mfc1", OP_BUILD5(5, 5, 0, 0, 0), OP_BUILD5(16, 11, 0, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG | ARG_TYPE_REG_FLOAT, 0, 0, 0), 0, 0, -1, 0x22000000, 0xffe007c0, nwop_mfc1, anyware_inst},
+{"mtc1", OP_BUILD5(5, 5, 0, 0, 0), OP_BUILD5(11, 16, 0, 0, 0), OP_BUILD5(ARG_TYPE_REG | ARG_TYPE_REG_FLOAT, ARG_TYPE_REG, 0, 0, 0), 0, 0, -1, 0x22000100, 0xffe007c0, nwop_mtc1, anyware_inst},
+{"add.s", OP_BUILD5(5, 5, 5, 0, 0), OP_BUILD5(6, 11, 16, 0, 0), OP_BUILD5(ARG_TYPE_REG | ARG_TYPE_REG_FLOAT, ARG_TYPE_REG | ARG_TYPE_REG_FLOAT, ARG_TYPE_REG | ARG_TYPE_REG_FLOAT, 0, 0), 0, 0, -1, 0x22000040, 0xfc0007c0, nwop_add_s, anyware_inst},
+{"add.d", OP_BUILD5(5, 5, 5, 0, 0), OP_BUILD5(6, 11, 16, 0, 0), OP_BUILD5(ARG_TYPE_REG | ARG_TYPE_REG_FLOAT, ARG_TYPE_REG | ARG_TYPE_REG_FLOAT, ARG_TYPE_REG | ARG_TYPE_REG_FLOAT, 0, 0), 0, 0, -1, 0x22000440, 0xfc0007c0, nwop_add_d, anyware_inst},
+{"sub.s", OP_BUILD5(5, 5, 5, 0, 0), OP_BUILD5(6, 11, 16, 0, 0), OP_BUILD5(ARG_TYPE_REG | ARG_TYPE_REG_FLOAT, ARG_TYPE_REG | ARG_TYPE_REG_FLOAT, ARG_TYPE_REG | ARG_TYPE_REG_FLOAT, 0, 0), 0, 0, -1, 0x22000041, 0xfc0007ff, nwop_sub_s, anyware_inst},
+{"sub.d", OP_BUILD5(5, 5, 5, 0, 0), OP_BUILD5(6, 11, 16, 0, 0), OP_BUILD5(ARG_TYPE_REG | ARG_TYPE_REG_FLOAT, ARG_TYPE_REG | ARG_TYPE_REG_FLOAT, ARG_TYPE_REG | ARG_TYPE_REG_FLOAT, 0, 0), 0, 0, -1, 0x22000441, 0xfc0007ff, nwop_sub_d, anyware_inst},
+{"mul.s", OP_BUILD5(5, 5, 5, 0, 0), OP_BUILD5(6, 11, 16, 0, 0), OP_BUILD5(ARG_TYPE_REG | ARG_TYPE_REG_FLOAT, ARG_TYPE_REG | ARG_TYPE_REG_FLOAT, ARG_TYPE_REG | ARG_TYPE_REG_FLOAT, 0, 0), 0, 0, -1, 0x22000042, 0xfc0007ff, nwop_mul_s, anyware_inst},
+{"mul.d", OP_BUILD5(5, 5, 5, 0, 0), OP_BUILD5(6, 11, 16, 0, 0), OP_BUILD5(ARG_TYPE_REG | ARG_TYPE_REG_FLOAT, ARG_TYPE_REG | ARG_TYPE_REG_FLOAT, ARG_TYPE_REG | ARG_TYPE_REG_FLOAT, 0, 0), 0, 0, -1, 0x22000442, 0xfc0007ff, nwop_mul_d, anyware_inst},
+{"div.s", OP_BUILD5(5, 5, 5, 0, 0), OP_BUILD5(6, 11, 16, 0, 0), OP_BUILD5(ARG_TYPE_REG | ARG_TYPE_REG_FLOAT, ARG_TYPE_REG | ARG_TYPE_REG_FLOAT, ARG_TYPE_REG | ARG_TYPE_REG_FLOAT, 0, 0), 0, 0, -1, 0x22000043, 0xfc0007ff, nwop_div_s, anyware_inst},
+{"div.d", OP_BUILD5(5, 5, 5, 0, 0), OP_BUILD5(6, 11, 16, 0, 0), OP_BUILD5(ARG_TYPE_REG | ARG_TYPE_REG_FLOAT, ARG_TYPE_REG | ARG_TYPE_REG_FLOAT, ARG_TYPE_REG | ARG_TYPE_REG_FLOAT, 0, 0), 0, 0, -1, 0x22000443, 0xfc0007ff, nwop_div_d, anyware_inst},
+{"mov.s", OP_BUILD5(5, 5, 0, 0, 0), OP_BUILD5(6, 11, 0, 0, 0), OP_BUILD5(ARG_TYPE_REG | ARG_TYPE_REG_FLOAT, ARG_TYPE_REG | ARG_TYPE_REG_FLOAT, 0, 0, 0), 0, 0, -1, 0x22000046, 0xfc00ffff, nwop_mov_s, anyware_inst},
+{"mov.d", OP_BUILD5(5, 5, 0, 0, 0), OP_BUILD5(6, 11, 0, 0, 0), OP_BUILD5(ARG_TYPE_REG | ARG_TYPE_REG_FLOAT, ARG_TYPE_REG | ARG_TYPE_REG_FLOAT, 0, 0, 0), 0, 0, -1, 0x22000446, 0xfc00ffff, nwop_mov_d, anyware_inst},
+{"add.ps", OP_BUILD5(5, 5, 5, 0, 0), OP_BUILD5(6, 11, 16, 0, 0), OP_BUILD5(ARG_TYPE_REG | ARG_TYPE_REG_FLOAT, ARG_TYPE_REG | ARG_TYPE_REG_FLOAT, ARG_TYPE_REG | ARG_TYPE_REG_FLOAT, 0, 0), 0, 0, -1, 0x22000340, 0xfc0007c0, nwop_add_ps, anyware_inst},
+{"trunc.w.s", OP_BUILD5(5, 5, 0, 0, 0), OP_BUILD5(6, 11, 0, 0, 0), OP_BUILD5(ARG_TYPE_REG | ARG_TYPE_REG_FLOAT, ARG_TYPE_REG | ARG_TYPE_REG_FLOAT, 0, 0, 0), 0, 0, -1, 0x2200004d, 0xfc00ffff, nwop_trunc_w_s, anyware_inst},
+{"c.eq.s", OP_BUILD5(5, 5, 0, 0, 0), OP_BUILD5(11, 16, 0, 0, 0), OP_BUILD5(ARG_TYPE_REG | ARG_TYPE_REG_FLOAT, ARG_TYPE_REG, 0, 0, 0), 0, 0, -1, 0x22000072, 0xffe007ff, nwop_c_eq_s, anyware_inst},
+{"c.lt.s", OP_BUILD5(5, 5, 0, 0, 0), OP_BUILD5(11, 16, 0, 0, 0), OP_BUILD5(ARG_TYPE_REG | ARG_TYPE_REG_FLOAT, ARG_TYPE_REG, 0, 0, 0), 0, 0, -1, 0x2200007c, 0xffe007ff, nwop_c_lt_s, anyware_inst},
+{"c.le.s", OP_BUILD5(5, 5, 0, 0, 0), OP_BUILD5(11, 16, 0, 0, 0), OP_BUILD5(ARG_TYPE_REG | ARG_TYPE_REG_FLOAT, ARG_TYPE_REG, 0, 0, 0), 0, 0, -1, 0x2200007e, 0xffe007ff, nwop_c_le_s, anyware_inst},
+{"mul", OP_BUILD5(5, 5, 5, 0, 0), OP_BUILD5(11, 21, 16, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_REG, 0, 0), 0, 0, -1, 0x38000002, 0xfc00003f, nwop_mul, anyware_inst},
+{"mulh", OP_BUILD5(5, 5, 5, 0, 0), OP_BUILD5(11, 21, 16, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_REG, 0, 0), 0, 0, -1, 0x38000003, 0xfc00003f, nwop_mulh, anyware_inst},
+{"fork", OP_BUILD5(5, 5, 5, 0, 0), OP_BUILD5(11, 21, 16, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_REG, 0, 0), 0, 0, -1, 0x3e000008, 0xfc00003f, nwop_fork, anyware_inst},
+{"yield", OP_BUILD5(5, 0, 0, 0, 0), OP_BUILD5(21, 0, 0, 0, 0), OP_BUILD5(ARG_TYPE_REG, 0, 0, 0, 0), 0, 0, -1, 0x3e000009, 0xfc00003f, nwop_yield, anyware_inst},
+{"wsbh", OP_BUILD5(5, 5, 0, 0, 0), OP_BUILD5(11, 16, 0, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, 0, 0, 0), 0, 0, -1, 0x3f000020, 0xffe0003f, nwop_wsbh, anyware_inst},
+{"sbext", OP_BUILD5(5, 5, 0, 0, 0), OP_BUILD5(11, 16, 0, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, 0, 0, 0), 0, 0, -1, 0x3e200020, 0xffe0003f, nwop_sbext, anyware_inst},
+{"shext", OP_BUILD5(5, 5, 0, 0, 0), OP_BUILD5(11, 16, 0, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, 0, 0, 0), 0, 0, -1, 0x3e600020, 0xffe0003f, nwop_shext, anyware_inst},
+{"lb", OP_BUILD5(5, 5, 16, 0, 0), OP_BUILD5(16, 21, 0, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_IMM, 0, 0), 0, 0, 2, 0x40000000, 0xfc000000, nwop_lb, anyware_inst},
+{"lh", OP_BUILD5(5, 5, 16, 0, 0), OP_BUILD5(16, 21, 0, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_IMM, 0, 0), 0, 0, 2, 0x42000000, 0xfc000000, nwop_lh, anyware_inst},
+{"lw", OP_BUILD5(5, 5, 16, 0, 0), OP_BUILD5(16, 21, 0, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_IMM, 0, 0), 0, 0, 2, 0x46000000, 0xfc000000, nwop_lw, anyware_inst},
+{"lbu", OP_BUILD5(5, 5, 16, 0, 0), OP_BUILD5(16, 21, 0, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_IMM, 0, 0), 0, 0, 2, 0x48000000, 0xfc000000, nwop_lbu, anyware_inst},
+{"lhu", OP_BUILD5(5, 5, 16, 0, 0), OP_BUILD5(16, 21, 0, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_IMM, 0, 0), 0, 0, 2, 0x4a000000, 0xfc000000, nwop_lhu, anyware_inst},
+{"sb", OP_BUILD5(5, 5, 16, 0, 0), OP_BUILD5(16, 21, 0, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_IMM, 0, 0), 0, 0, 2, 0x50000000, 0xfc000000, nwop_sb, anyware_inst},
+{"sh", OP_BUILD5(5, 5, 16, 0, 0), OP_BUILD5(16, 21, 0, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_IMM, 0, 0), 0, 0, 2, 0x52000000, 0xfc000000, nwop_sh, anyware_inst},
+{"sw", OP_BUILD5(5, 5, 16, 0, 0), OP_BUILD5(16, 21, 0, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_IMM, 0, 0), 0, 0, 2, 0x56000000, 0xfc000000, nwop_sw, anyware_inst},
+{"lwc1", OP_BUILD5(5, 5, 16, 0, 0), OP_BUILD5(16, 21, 0, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_IMM, 0, 0), 0, 0, 2, 0x62000000, 0xfc000000, nwop_lwc1, anyware_inst},
+{"ldc1", OP_BUILD5(5, 5, 16, 0, 0), OP_BUILD5(16, 21, 0, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_IMM, 0, 0), 0, 0, 2, 0x6a000000, 0xfc000000, nwop_ldc1, anyware_inst},
+{"swc1", OP_BUILD5(5, 5, 16, 0, 0), OP_BUILD5(16, 21, 0, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_IMM, 0, 0), 0, 0, 2, 0x72000000, 0xfc000000, nwop_swc1, anyware_inst},
+{"sdc1", OP_BUILD5(5, 5, 16, 0, 0), OP_BUILD5(16, 21, 0, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_IMM, 0, 0), 0, 0, 2, 0x7a000000, 0xfc000000, nwop_sdc1, anyware_inst},
+    /* End generated code: opcodes */
     {"", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 };
 

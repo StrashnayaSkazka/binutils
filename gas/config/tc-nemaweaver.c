@@ -373,6 +373,7 @@ const pseudo_typeS md_pseudo_table[] =
     {"sbss", nemaweaver_s_bss, 1},
     {"text", nemaweaver_s_text, 0},
     {"word", cons, 4},
+    {"fpu", s_ignore, 0},
     {"frame", s_ignore, 0},
     {"mask", s_ignore, 0}, /* Emitted by gcc.  */
     {NULL, NULL, 0}
@@ -784,7 +785,7 @@ void md_assemble(char * str)
     reg_index = 0;
 
     /* Read the arguments. */
-    for (arg_index = 0; OP_BREAD5(arg_index, opcode->arg_type) != ARG_TYPE_INV || arg_index < ARG_MAX; arg_index++) {
+    for (arg_index = 0; OP_BREAD5(arg_index, opcode->arg_type) != ARG_TYPE_INV && arg_index < ARG_MAX; arg_index++) {
 	if (OP_BREAD5(arg_index, opcode->arg_type) & ARG_TYPE_REG) {
 	    /* The argument is a register. */
 	    if (strcmp (op_end, "")) {
@@ -1524,9 +1525,7 @@ md_parse_option (int c, char * arg ATTRIBUTE_UNUSED)
 void
 md_show_usage (FILE * stream ATTRIBUTE_UNUSED)
 {
-    /*  fprintf(stream, _("\
-	MicroBlaze options:\n\
-	-noSmall         Data in the comm and data sections do not go into the small data section\n")); */
+    fprintf(stream, _("NemaWeaver: no options\n"));
 }
 
 
