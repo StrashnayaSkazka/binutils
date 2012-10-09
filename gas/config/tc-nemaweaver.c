@@ -357,25 +357,29 @@ nemaweaver_s_weakext (int ignore ATTRIBUTE_UNUSED)
    and then in the read.c table.  */
 const pseudo_typeS md_pseudo_table[] =
 {
-    {"lcomm", nemaweaver_s_lcomm, 1},
+    {"bss", nemaweaver_s_bss, 0},
     {"data", nemaweaver_s_data, 0},
-    {"data8", cons, 1},      /* Same as byte.  */
     {"data16", cons, 2},     /* Same as hword.  */
     {"data32", cons, 4},     /* Same as word.  */
-    {"ent", s_func, 0}, /* Treat ent as function entry point.  */
+    {"data8", cons, 1},      /* Same as byte.  */
     {"end", nemaweaver_s_func, 1}, /* Treat end as function end point.  */
-    {"gpword", s_rva, 4}, /* gpword label => store resolved label address in data section.  */
-    {"weakext", nemaweaver_s_weakext, 0},
-    {"rodata", nemaweaver_s_rdata, 0},
-    {"sdata2", nemaweaver_s_rdata, 1},
-    {"sdata", nemaweaver_s_sdata, 0},
-    {"bss", nemaweaver_s_bss, 0},
-    {"sbss", nemaweaver_s_bss, 1},
-    {"text", nemaweaver_s_text, 0},
-    {"word", cons, 4},
+    {"ent", s_func, 0}, /* Treat ent as function entry point.  */
     {"fpu", s_ignore, 0},
     {"frame", s_ignore, 0},
+    {"gpword", s_rva, 4}, /* gpword label => store resolved label address in data section.  */
+    {"lcomm", nemaweaver_s_lcomm, 1},
     {"mask", s_ignore, 0}, /* Emitted by gcc.  */
+    {"rodata", nemaweaver_s_rdata, 0},
+    {"sbss", nemaweaver_s_bss, 1},
+    {"sdata", nemaweaver_s_sdata, 0},
+    {"sdata2", nemaweaver_s_rdata, 1},
+    {"text", nemaweaver_s_text, 0},
+    {"weakext", nemaweaver_s_weakext, 0},
+    {"word", cons, 4},
+
+    {"eabi_attribute", s_ignore, 0}, 	/* Emitted by ARM */
+    {"syntax", s_ignore, 0}, 	/* Emited by ARM */
+    {"zero", s_ignore, 0}, 	/* Emitted by ARM */
     {NULL, NULL, 0}
 };
 
@@ -536,6 +540,62 @@ static symbolS * GOT_symbol;
 
 #define GOT_SYMBOL_NAME "_GLOBAL_OFFSET_TABLE_"
 
+
+unsigned short parse_imm_flags (char* s)
+{
+    if (strcmp(s, "lower16"))
+	return IMM_LOWER16;
+    if (strcmp(s, "higer16"))
+	return IMM_HIGHER16;
+    as_fatal("Cannot parse imm prefix.");
+    return 0;
+}
+
+#define IMM_LOWER16 0x1
+#define IMM_HIGHER16 0x2
+
+static char *
+parse_imm(char * s, expressionS * e, int min, int max)
+{
+    char* prefix;
+    unsigned short imm_flags;
+    e->X_md = 0;
+
+    /* Parse :lower16: or :upper16: */
+    prefix = strtok(s, ":");
+    while (prefix) {
+	e->X_md |= parse_imm_flag(prefix);
+	if (prefix = strtok(NULL, ":")) s=prefix;
+    }
+
+    /* s is now clean of prefixes. */
+    s = parse_exp (s, e);	/* XXX: X_md is now our sophisticated version ;) */
+
+    if ((e->X_op != O_constant && e->X_op != O_symbol))
+	as_fatal (_("operand must be absolute in range %d..%d, not %d"),
+		  min, max, (int) e->X_add_number);
+    else if ((e->X_op == O_constant) && ((int) e->X_add_number < min
+					 || (int) e->X_add_number > max))
+	as_fatal (_("operand must be absolute in range %d..%d, not %d"),
+		  min, max, (int) e->X_add_number);
+
+    return s;
+}
+
+unsigned int
+imm_value(expressionS e)
+{
+    if (e.X_md & IMM_HIGHER16 && e.X_md & IMM_LOWER16)
+	as_fatal(_("you can either get the higher16 OR lower16."))
+	    if (e.X_md & IMM_HIGHER16)
+		return e.X_add_number >> 16;
+	    else if (e.X_md & IMM_LOWER16)
+		return e.X_add_number & 0xff;
+
+    return e.X_add_number;
+}
+
+#if 0
 static char *
 parse_imm (char * s, expressionS * e, int min, int max)
 {
@@ -684,6 +744,9 @@ parse_cons_expression_nemaweaver (expressionS *exp, int size)
 	expression (exp);
 }
 
+#endif
+
+
 /* This is the guts of the machine-dependent assembler.  STR points to a
    machine dependent instruction.  This function is supposed to emit
    the frags/bytes it assembles to.  */
@@ -808,7 +871,7 @@ void md_assemble(char * str)
 		as_fatal (_("Error in statement syntax"));
 
 	    /* Imm may be some sort of expression(like a label). */
-	    argument = exp.X_add_number;
+	    argument = imm_value(*exp); // exp.X_add_number;
 	} else {
 	    argument = 0;
 	}
@@ -1253,6 +1316,8 @@ md_operand (expressionS * expressionP)
     }
 }
 
+
+/* XXX: This is quite prone to bugs, we do not really do relaxation */
 /* Called just before address relaxation, return the length
    by which a fragment must grow to reach it's destination.  */
 
@@ -1528,7 +1593,7 @@ md_show_usage (FILE * stream ATTRIBUTE_UNUSED)
     fprintf(stream, _("NemaWeaver: no options\n"));
 }
 
-
+if 0
 /* Create a fixup for a cons expression.  If parse_cons_expression_nemaweaver
    found a machine specific op in an expression,
    then we create relocs accordingly.  */
@@ -1575,3 +1640,4 @@ cons_fix_new_nemaweaver (fragS * frag,
     }
     fix_new_exp (frag, where, size, exp, 0, r);
 }
+#endif
