@@ -348,6 +348,31 @@ nemaweaver_s_weakext (int ignore ATTRIBUTE_UNUSED)
     demand_empty_rest_of_line ();
 }
 
+
+static void
+nemaweaver_s_set (int xxx ATTRIBUTE_UNUSED)
+{
+    char *name = input_line_pointer, ch;
+
+    while (!is_end_of_line[(unsigned char) *input_line_pointer])
+	++input_line_pointer;
+    ch = *input_line_pointer;
+    *input_line_pointer = '\0';
+
+    /* if (strcmp(name, "<paramname>")) { *actions* } else ..*/
+    if (strchr (name, ',')) {
+	/* Generic ".set" directive; use the generic handler.  */
+	*input_line_pointer = ch;
+	input_line_pointer = name;
+	s_set (0);
+	return;
+    } else {
+	;/* as_warn (_("Tried to set unrecognized symbol: %s\n"), name); */
+    }
+    *input_line_pointer = ch;
+    demand_empty_rest_of_line ();
+}
+
 /* This table describes all the machine specific pseudo-ops the assembler
    has to support.  The fields are:
    Pseudo-op name without dot
@@ -380,6 +405,10 @@ const pseudo_typeS md_pseudo_table[] =
     {"eabi_attribute", s_ignore, 0}, 	/* Emitted by ARM */
     {"syntax", s_ignore, 0}, 	/* Emited by ARM */
     {"zero", s_ignore, 0}, 	/* Emitted by ARM */
+
+    {"fmask", s_ignore, 0},  	/* Emited my MIPS */
+
+    {"set", nemaweaver_s_set, 0}, /* Modified MIPS */
     {NULL, NULL, 0}
 };
 
@@ -536,12 +565,15 @@ static char *parse_exp (char *s, expressionS *e)
 #define IMM_PLT    2
 #define IMM_GOTOFF 3
 
+#define IMM_LOWER16 1
+#define IMM_HIGHER16 2
+
 static symbolS * GOT_symbol;
 
 #define GOT_SYMBOL_NAME "_GLOBAL_OFFSET_TABLE_"
 
-
-unsigned short parse_imm_flags (char* s)
+static unsigned short
+parse_imm_flags (char* s)
 {
     if (strcmp(s, "lower16"))
 	return IMM_LOWER16;
@@ -551,24 +583,20 @@ unsigned short parse_imm_flags (char* s)
     return 0;
 }
 
-#define IMM_LOWER16 0x1
-#define IMM_HIGHER16 0x2
-
 static char *
 parse_imm(char * s, expressionS * e, int min, int max)
 {
     char* prefix;
-    unsigned short imm_flags;
     e->X_md = 0;
 
-    /* Parse :lower16: or :upper16: */
+/* Parse :lower16: or :upper16: */
     prefix = strtok(s, ":");
     while (prefix) {
-	e->X_md |= parse_imm_flag(prefix);
-	if (prefix = strtok(NULL, ":")) s=prefix;
+	e->X_md |= parse_imm_flags(prefix);
+	if ((prefix = strtok(NULL, ":"))) s=prefix;
     }
 
-    /* s is now clean of prefixes. */
+/* s is now clean of prefixes. */
     s = parse_exp (s, e);	/* XXX: X_md is now our sophisticated version ;) */
 
     if ((e->X_op != O_constant && e->X_op != O_symbol))
@@ -582,15 +610,15 @@ parse_imm(char * s, expressionS * e, int min, int max)
     return s;
 }
 
-unsigned int
+static unsigned int
 imm_value(expressionS e)
 {
     if (e.X_md & IMM_HIGHER16 && e.X_md & IMM_LOWER16)
-	as_fatal(_("you can either get the higher16 OR lower16."))
-	    if (e.X_md & IMM_HIGHER16)
-		return e.X_add_number >> 16;
-	    else if (e.X_md & IMM_LOWER16)
-		return e.X_add_number & 0xff;
+	as_fatal(_("you can either get the higher16 OR lower16."));
+    if (e.X_md & IMM_HIGHER16)
+	return e.X_add_number >> 16;
+    else if (e.X_md & IMM_LOWER16)
+	return e.X_add_number & 0xff;
 
     return e.X_add_number;
 }
@@ -602,7 +630,7 @@ parse_imm (char * s, expressionS * e, int min, int max)
     char *new_pointer;
     char *atp;
 
-    /* Find the start of "@GOT" or "@PLT" suffix (if any) */
+/* Find the start of "@GOT" or "@PLT" suffix (if any) */
     for (atp = s; *atp != '@'; atp++)
 	if (is_end_of_line[(unsigned char) *atp])
 	    break;
@@ -660,7 +688,7 @@ parse_imm (char * s, expressionS * e, int min, int max)
 	*atp = '@'; /* restore back (needed?)  */
 	if (new_pointer >= atp)
 	    new_pointer += (e->X_md == IMM_GOTOFF)?7:4;
-	/* sizeof("@GOTOFF", "@GOT" or "@PLT") */
+/* sizeof("@GOTOFF", "@GOT" or "@PLT") */
 
     }
     return new_pointer;
@@ -675,7 +703,7 @@ check_got (int * got_type, int * got_len)
     int first, second;
     char *tmpbuf;
 
-    /* Find the start of "@GOT" or "@PLT" suffix (if any).  */
+/* Find the start of "@GOT" or "@PLT" suffix (if any).  */
     for (atp = input_line_pointer; *atp != '@'; atp++)
 	if (is_end_of_line[(unsigned char) *atp])
 	    return NULL;
@@ -719,33 +747,32 @@ check_got (int * got_type, int * got_len)
 extern void
 parse_cons_expression_nemaweaver (expressionS *exp, int size)
 {
-    if (size == 4)
-    {
-	/* Handle @GOTOFF et.al.  */
-	char *save, *gotfree_copy;
-	int got_len, got_type;
+    We do not have 4byte immediates.
+	      if (size == 4)
+	      {
+		  /* Handle @GOTOFF et.al.  */
+		  char *save, *gotfree_copy;
+		  int got_len, got_type;
 
-	save = input_line_pointer;
-	gotfree_copy = check_got (& got_type, & got_len);
-	if (gotfree_copy)
-	    input_line_pointer = gotfree_copy;
+		  save = input_line_pointer;
+		  gotfree_copy = check_got (& got_type, & got_len);
+		  if (gotfree_copy)
+		      input_line_pointer = gotfree_copy;
 
-	expression (exp);
+		  expression (exp);
 
-	if (gotfree_copy)
-	{
-	    exp->X_md = got_type;
-	    input_line_pointer = save + (input_line_pointer - gotfree_copy)
-		+ got_len;
-	    free (gotfree_copy);
-        }
-    }
-    else
-	expression (exp);
+		  if (gotfree_copy)
+		  {
+		      exp->X_md = got_type;
+		      input_line_pointer = save + (input_line_pointer - gotfree_copy)
+			  + got_len;
+		      free (gotfree_copy);
+		  }
+	      }
+	      else
+		  expression (exp);
 }
-
 #endif
-
 
 /* This is the guts of the machine-dependent assembler.  STR points to a
    machine dependent instruction.  This function is supposed to emit
@@ -757,16 +784,16 @@ static char * str_nemaweaver_rw_anchor = "RW";
 static bfd_boolean
 check_spl_reg (unsigned * reg)
 {
-    if (   (*reg == REG_MSR)   || (*reg == REG_PC)
-	   || (*reg == REG_EAR)   || (*reg == REG_ESR)
-	   || (*reg == REG_FSR)   || (*reg == REG_BTR) || (*reg == REG_EDR)
-	   || (*reg == REG_PID)   || (*reg == REG_ZPR)
-	   || (*reg == REG_TLBX)  || (*reg == REG_TLBLO)
-	   || (*reg == REG_TLBHI) || (*reg == REG_TLBSX)
-	   || (*reg >= REG_PVR+MIN_PVR_REGNUM && *reg <= REG_PVR+MAX_PVR_REGNUM))
-	return TRUE;
+if (   (*reg == REG_MSR)   || (*reg == REG_PC)
+|| (*reg == REG_EAR)   || (*reg == REG_ESR)
+|| (*reg == REG_FSR)   || (*reg == REG_BTR) || (*reg == REG_EDR)
+|| (*reg == REG_PID)   || (*reg == REG_ZPR)
+|| (*reg == REG_TLBX)  || (*reg == REG_TLBLO)
+|| (*reg == REG_TLBHI) || (*reg == REG_TLBSX)
+|| (*reg >= REG_PVR+MIN_PVR_REGNUM && *reg <= REG_PVR+MAX_PVR_REGNUM))
+    return TRUE;
 
-    return FALSE;
+return FALSE;
 }
 
 /* Here we decide which fixups can be adjusted to make them relative to
@@ -777,133 +804,129 @@ check_spl_reg (unsigned * reg)
 int
 tc_nemaweaver_fix_adjustable (struct fix *fixP)
 {
-    if (GOT_symbol && fixP->fx_subsy == GOT_symbol)
-	return 0;
+if (GOT_symbol && fixP->fx_subsy == GOT_symbol)
+    return 0;
 
-    if (fixP->fx_r_type == BFD_RELOC_NEMAWEAVER_64_GOTOFF
+if (fixP->fx_r_type == BFD_RELOC_NEMAWEAVER_64_GOTOFF
 	|| fixP->fx_r_type == BFD_RELOC_NEMAWEAVER_32_GOTOFF
 	|| fixP->fx_r_type == BFD_RELOC_NEMAWEAVER_64_GOT
 	|| fixP->fx_r_type == BFD_RELOC_NEMAWEAVER_64_PLT)
-	return 0;
+    return 0;
 
-    return 1;
+return 1;
 }
 
 
-/* This is a rather simplistic way of parsing but is quite
- * extendible. Please consult into tc-microblaze.c in case you run
- * into a problem. The structure is radically different but at least
- * that implementation plays well with the rest of the codebase
- * (except what I have edited ofcourse) */
+/* Assemble an instruction. */
 void md_assemble(char * str)
 {
-    char * op_start;
-    char * op_end;
-    struct op_code_struct * opcode;
-    char * output = NULL;
-    int nlen = 0;
-    unsigned long inst;
-    unsigned argument, amask, ashift;
-    unsigned reg[ARG_MAX_REGS];
-    unsigned isize;
-    unsigned arg_index;
-    unsigned reg_index;
-    expressionS exp;
-    char name[20];
+char * op_start;
+char * op_end;
+struct op_code_struct * opcode;
+char * output = NULL;
+int nlen = 0;
+unsigned long inst;
+unsigned argument, amask, ashift;
+unsigned reg[ARG_MAX_REGS];
+unsigned isize;
+unsigned arg_index;
+unsigned reg_index;
+expressionS exp;
+char name[20];
 
-    /* Drop leading whitespace.  */
-    while (ISSPACE (* str))
-	str ++;
+/* Drop leading whitespace.  */
+while (ISSPACE (* str))
+    str ++;
 
-    /* Find the op code end. (the opcode name) */
-    for (op_start = op_end = str;
-	 *op_end && !is_end_of_line[(unsigned char) *op_end] && *op_end != ' ';
-	 op_end++)
-    {
-	name[nlen] = op_start[nlen];
-	nlen++;
-	if (nlen == sizeof (name) - 1)
-	    break;
-    }
+/* Find the op code end. (the opcode name) */
+for (op_start = op_end = str;
+*op_end && !is_end_of_line[(unsigned char) *op_end] && *op_end != ' ';
+op_end++)
+{
+name[nlen] = op_start[nlen];
+nlen++;
+if (nlen == sizeof (name) - 1)
+    break;
+}
 
-    name [nlen] = 0;
+name [nlen] = 0;
 
-    if (nlen == 0)
-    {
-	as_bad (_("can't find opcode "));
-	return;
-    }
+if (nlen == 0)
+{
+as_bad (_("can't find opcode "));
+return;
+}
 
-    /* Get the opcode struct. */
-    opcode = (struct op_code_struct *) hash_find (opcode_hash_control, name);
-    if (opcode == NULL)
-    {
-	as_bad (_("unknown opcode \"%s\""), name);
-	return;
-    }
+/* Get the opcode struct. */
+opcode = (struct op_code_struct *) hash_find (opcode_hash_control, name);
+if (opcode == NULL)
+{
+as_bad (_("unknown opcode \"%s\""), name);
+return;
+}
 
-    /* Unmasked bit sequence. */
-    inst = opcode->bit_sequence;
-    isize = 4;
-    reg_index = 0;
+/* Unmasked bit sequence. */
+inst = opcode->bit_sequence;
+isize = 4;
+reg_index = 0;
 
-    /* Read the arguments. */
-    for (arg_index = 0; OP_BREAD5(arg_index, opcode->arg_type) != ARG_TYPE_INV && arg_index < ARG_MAX; arg_index++) {
-	if (OP_BREAD5(arg_index, opcode->arg_type) & ARG_TYPE_REG) {
-	    /* The argument is a register. */
-	    if (strcmp (op_end, "")) {
-		op_end = parse_reg (op_end + 1, reg + reg_index++);
-	    } else {
-		as_fatal (_("Error in statement syntax"));
-		reg[reg_index] = 0;
-	    }
+/* Read the arguments. */
+for (arg_index = 0; OP_BREAD5(arg_index, opcode->arg_type) != ARG_TYPE_INV && arg_index < ARG_MAX; arg_index++) {
+if (OP_BREAD5(arg_index, opcode->arg_type) & ARG_TYPE_REG) {
+/* The argument is a register. */
+if (strcmp (op_end, "")) {
+op_end = parse_reg (op_end + 1, reg + reg_index++);
+} else {
+as_fatal (_("Error in statement syntax"));
+reg[reg_index] = 0;
+}
 
-	    if (check_spl_reg(reg + reg_index) &&
-		OP_BREAD5(arg_index, opcode->arg_type) & ARG_TYPE_REG_SPL)
-		as_fatal (_("Cannot use special register with this instruction"));
+if (check_spl_reg(reg + reg_index) &&
+OP_BREAD5(arg_index, opcode->arg_type) & ARG_TYPE_REG_SPL)
+    as_fatal (_("Cannot use special register with this instruction"));
 
-	    argument = reg[reg_index];
-	} else if (OP_BREAD5(arg_index, opcode->arg_type) & ARG_TYPE_IMM) {
-	    /* The argument is an imm value */
-	    if (strcmp (op_end, ""))
-		op_end = parse_imm (op_end + 1, &exp, MIN_IMM, MAX_IMM);
-	    else
-		as_fatal (_("Error in statement syntax"));
+argument = reg[reg_index];
+} else if (OP_BREAD5(arg_index, opcode->arg_type) & ARG_TYPE_IMM) {
+/* The argument is an imm value */
+if (strcmp (op_end, ""))
+    op_end = parse_imm (op_end + 1, &exp, MIN_IMM, MAX_IMM);
+else
+    as_fatal (_("Error in statement syntax"));
 
-	    /* Imm may be some sort of expression(like a label). */
-	    argument = imm_value(*exp); // exp.X_add_number;
-	} else {
-	    argument = 0;
-	}
+/* Imm may be some sort of expression(like a label). */
+argument = imm_value(exp); // exp.X_add_number;
+} else {
+argument = 0;
+}
 
-	amask = OP_BREAD5(arg_index, opcode->arg_mask);
-	ashift = OP_BREAD5(arg_index, opcode->arg_shift);
-	inst |= (argument & amask) << ashift;
-    }
+amask = OP_BREAD5(arg_index, opcode->arg_mask);
+ashift = OP_BREAD5(arg_index, opcode->arg_shift);
+inst |= (argument & amask) << ashift;
+}
 
-    /* Clean up whitespaces. */
-    while (ISSPACE (* op_end))
-	op_end ++;
+/* Clean up whitespaces. */
+while (ISSPACE (* op_end))
+    op_end ++;
 
 
-    /* From opcode and read arguments create a bitfield. */
-    output = frag_more(isize);
+/* From opcode and read arguments create a bitfield. */
+output = frag_more(isize);
 
-    output[0] = INST_BYTE0 (inst);
-    output[1] = INST_BYTE1 (inst);
-    output[2] = INST_BYTE2 (inst);
-    output[3] = INST_BYTE3 (inst);
+output[0] = INST_BYTE0 (inst);
+output[1] = INST_BYTE1 (inst);
+output[2] = INST_BYTE2 (inst);
+output[3] = INST_BYTE3 (inst);
 
 
 #ifdef OBJ_ELF
-    dwarf2_emit_insn (4);
+dwarf2_emit_insn (4);
 #endif
 }
 
 symbolS *
 md_undefined_symbol (char * name ATTRIBUTE_UNUSED)
 {
-    return NULL;
+return NULL;
 }
 
 /* Various routines to kill one day.  */
@@ -916,67 +939,67 @@ md_undefined_symbol (char * name ATTRIBUTE_UNUSED)
 char *
 md_atof (int type, char * litP, int * sizeP)
 {
-    int prec;
-    LITTLENUM_TYPE words[MAX_LITTLENUMS];
-    int    i;
-    char * t;
+int prec;
+LITTLENUM_TYPE words[MAX_LITTLENUMS];
+int    i;
+char * t;
 
-    switch (type)
+switch (type)
+{
+case 'f':
+case 'F':
+case 's':
+case 'S':
+prec = 2;
+break;
+
+case 'd':
+case 'D':
+case 'r':
+case 'R':
+prec = 4;
+break;
+
+case 'x':
+case 'X':
+prec = 6;
+break;
+
+case 'p':
+case 'P':
+prec = 6;
+break;
+
+default:
+*sizeP = 0;
+return _("Bad call to MD_NTOF()");
+}
+
+t = atof_ieee (input_line_pointer, type, words);
+
+if (t)
+    input_line_pointer = t;
+
+*sizeP = prec * sizeof (LITTLENUM_TYPE);
+
+if (! target_big_endian)
+{
+for (i = prec - 1; i >= 0; i--)
+{
+md_number_to_chars (litP, (valueT) words[i],
+			sizeof (LITTLENUM_TYPE));
+litP += sizeof (LITTLENUM_TYPE);
+}
+}
+else
+    for (i = 0; i < prec; i++)
     {
-    case 'f':
-    case 'F':
-    case 's':
-    case 'S':
-	prec = 2;
-	break;
-
-    case 'd':
-    case 'D':
-    case 'r':
-    case 'R':
-	prec = 4;
-	break;
-
-    case 'x':
-    case 'X':
-	prec = 6;
-	break;
-
-    case 'p':
-    case 'P':
-	prec = 6;
-	break;
-
-    default:
-	*sizeP = 0;
-	return _("Bad call to MD_NTOF()");
+md_number_to_chars (litP, (valueT) words[i],
+			sizeof (LITTLENUM_TYPE));
+litP += sizeof (LITTLENUM_TYPE);
     }
 
-    t = atof_ieee (input_line_pointer, type, words);
-
-    if (t)
-	input_line_pointer = t;
-
-    *sizeP = prec * sizeof (LITTLENUM_TYPE);
-
-    if (! target_big_endian)
-    {
-	for (i = prec - 1; i >= 0; i--)
-        {
-	    md_number_to_chars (litP, (valueT) words[i],
-				sizeof (LITTLENUM_TYPE));
-	    litP += sizeof (LITTLENUM_TYPE);
-        }
-    }
-    else
-	for (i = 0; i < prec; i++)
-	{
-	    md_number_to_chars (litP, (valueT) words[i],
-				sizeof (LITTLENUM_TYPE));
-	    litP += sizeof (LITTLENUM_TYPE);
-	}
-
-    return NULL;
+return NULL;
 }
 
 const char * md_shortopts = "";
@@ -1317,7 +1340,6 @@ md_operand (expressionS * expressionP)
 }
 
 
-/* XXX: This is quite prone to bugs, we do not really do relaxation */
 /* Called just before address relaxation, return the length
    by which a fragment must grow to reach it's destination.  */
 
@@ -1593,7 +1615,7 @@ md_show_usage (FILE * stream ATTRIBUTE_UNUSED)
     fprintf(stream, _("NemaWeaver: no options\n"));
 }
 
-if 0
+#if 0
 /* Create a fixup for a cons expression.  If parse_cons_expression_nemaweaver
    found a machine specific op in an expression,
    then we create relocs accordingly.  */

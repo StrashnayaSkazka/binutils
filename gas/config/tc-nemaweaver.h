@@ -30,12 +30,12 @@
 
 #define TC_RELOC_MANGLE(a,b,c) tc_reloc_mangle (a, b, c)
 
-/* We need to handle expressions of type "symbol op symbol" and create
-   relocs for such expressions as -relax in linker can change the value
-   of such expressions */
-#define TC_CONS_FIX_NEW cons_fix_new_nemaweaver
-#define TC_PARSE_CONS_EXPRESSION(EXP, NBYTES) parse_cons_expression_nemaweaver (EXP, NBYTES)
-extern void parse_cons_expression_nemaweaver PARAMS ((expressionS *, int));
+/* Cons fix new we do not use. If we need any fancy parsing of
+ * immediates this is what we should do */
+
+/* We dont want any fancy expression parsing */
+/* #define TC_PARSE_CONS_EXPRESSION(EXP, NBYTES) parse_cons_expression_nemaweaver (EXP, NBYTES) */
+/* extern void parse_cons_expression_nemaweaver PARAMS ((expressionS *, int)); */
 
 #define TC_FORCE_RELOCATION_SECTION(FIXP,SEG) 1
 #define UNDEFINED_DIFFERENCE_OK 1
@@ -110,5 +110,15 @@ extern void 	 cons_fix_new_nemaweaver        (fragS *, int, int, expressionS *);
 extern void 	 md_apply_fix3 		           (fixS *, valueT *, segT);
 
 #define EXTERN_FORCE_RELOC -1
+
+#define TARGET_USE_CFIPOP 1
+
+/* This is taken from mips. Apparently this is where to pull the
+ * return from a serialization of the register file. Our return reg happens to be r31 */
+#define DWARF2_DEFAULT_RETURN_COLUMN  31
+
+/* Registers are generally saved at negative offsets to the CFA.  */
+#define DWARF2_CIE_DATA_ALIGNMENT     (-4)
+
 
 #endif /* TC_NEMAWEAVER */
