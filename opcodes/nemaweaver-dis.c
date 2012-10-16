@@ -33,11 +33,11 @@
 
 /* Return a textual representation of the reg */
 static char *
-get_field (long instr, long mask, unsigned short low, unsigned type)
+get_field (unsigned long instr, unsigned long mask, unsigned short low, unsigned type)
 {
     char tmpstr[25];
 
-    sprintf (tmpstr, "%s%d", arg_prefix(type), (int)((instr & mask) >> low));
+    sprintf (tmpstr, "%s%d", arg_prefix(type), (int)((instr >> low) & mask));
 
     return (strdup (tmpstr));
 }
@@ -123,7 +123,7 @@ static unsigned long read_insn_nemaweaver (bfd_vma memaddr,
     if (status != 0)
     {
 	info->memory_error_func (status, memaddr, info);
-	return 0;
+	return INVALID_INST;
     }
 
     if (info->endian == BFD_ENDIAN_BIG)
@@ -143,7 +143,7 @@ static unsigned long read_insn_nemaweaver (bfd_vma memaddr,
     return inst;
 }
 
-
+/* Use read insn_nemaweaver to read and print_func to print. */
 int print_insn_nemaweaver (bfd_vma memaddr, struct disassemble_info * info)
 {
     fprintf_ftype       print_func = info->fprintf_func;
@@ -160,30 +160,33 @@ int print_insn_nemaweaver (bfd_vma memaddr, struct disassemble_info * info)
     info->bytes_per_chunk = 4;
 
     inst = read_insn_nemaweaver (memaddr, info, &op);
-    if (inst == 0)
+
+    if (inst == INVALID_INST) {
 	return -1;
+    }
 
     /* If we are continuing from the last expanded command. */
     if (prev_insn_vma == curr_insn_vma)
     {
-	if (memaddr-(info->bytes_per_chunk) == prev_insn_addr)
+    	if (memaddr-(info->bytes_per_chunk) == prev_insn_addr)
         {
-	    prev_inst = read_insn_nemaweaver (prev_insn_addr, info, &pop);
-	    if (prev_inst == 0)
-		return -1;
-	    /* This code seems quite legit... I dont see why it is
-	     * commented out */
-	    //if (pop->instr == imm)
-	    //  {
-	    //    immval = (get_int_field_imm (prev_inst) << 16) & 0xffff0000;
-	    //    immfound = TRUE;
-	    //  }
-	    //else
-	    //  {
-	    immval = 0;
-	    immfound = FALSE;
-	    //  }
-	}
+    	    prev_inst = read_insn_nemaweaver (prev_insn_addr, info, &pop);
+    	    if (prev_inst == INVALID_INST) {
+    		return -1;
+    	    }
+    	    /* This code seems quite legit... I dont see why it is
+    	     * commented out */
+    	    //if (pop->instr == imm)
+    	    //  {
+    	    //    immval = (get_int_field_imm (prev_inst) << 16) & 0xffff0000;
+    	    //    immfound = TRUE;
+    	    //  }
+    	    //else
+    	    //  {
+    	    immval = 0;
+    	    immfound = FALSE;
+    	    //  }
+    	}
     }
 
     /* Make curr insn as prev insn.  */

@@ -31,8 +31,6 @@
 #include <dwarf2dbg.h>
 #include "aout/stab_gnu.h"
 
-#define fdd(format, arg...) printf("FD DEBUG: " format, arg)
-
 #ifndef streq
 #define streq(a,b) (strcmp (a, b) == 0)
 #endif
@@ -577,28 +575,38 @@ static symbolS * GOT_symbol;
 static unsigned short
 parse_imm_flags (char* s)
 {
-    if (strcmp(s, "lower16"))
+    if (strncmp("lower16",s, sizeof("lower16") -1) == 0) {
 	return IMM_LOWER16;
-    if (strcmp(s, "higer16"))
+    }
+    if (strncmp("higher16",s, sizeof("higher16") -1) == 0) {
 	return IMM_HIGHER16;
-    as_fatal("Cannot parse imm prefix.");
+    }
+    as_warn(_("Check your imm prefixes in '%s'"),s);
     return 0;
+}
+
+/* Skip lexical whitespaces. I this scoe commas are considered spaces aswell. */
+static char* nemaweaver_skip_lspaces(char* s)
+{
+    char * it;
+    for (it = s; *it == ' ' || *it == '\t' || *it == ','; it++);
+    return it;
 }
 
 static char *
 parse_imm(char * s, expressionS * e, int min, int max)
 {
-    char* prefix;
+    char* it;
     e->X_md = 0;
 
-/* Parse :lower16: or :upper16: */
-    prefix = strtok(s, ":");
-    while (prefix) {
-	e->X_md |= parse_imm_flags(prefix);
-	if ((prefix = strtok(NULL, ":"))) s=prefix;
+    for (it = s = nemaweaver_skip_lspaces(s); !IS_SPACE_OR_NUL(*it); it++) {
+	if (*it == ':') {
+	    if (s != it) e->X_md |= parse_imm_flags(s);
+	    s = it+1;
+	}
     }
 
-/* s is now clean of prefixes. */
+    /* s is now clean of prefixes. */
     s = parse_exp (s, e);	/* XXX: X_md is now our sophisticated version ;) */
 
     if ((e->X_op != O_constant && e->X_op != O_symbol))
@@ -620,7 +628,7 @@ imm_value(expressionS e)
     if (e.X_md & IMM_HIGHER16)
 	return e.X_add_number >> 16;
     else if (e.X_md & IMM_LOWER16)
-	return e.X_add_number & 0xff;
+	return e.X_add_number & 0xffff;
 
     return e.X_add_number;
 }
@@ -886,11 +894,11 @@ void md_assemble(char * str)
 		OP_BREAD5(arg_index, opcode->arg_type) & ARG_TYPE_REG_SPL)
 		as_fatal (_("Cannot use special register with this instruction"));
 
-	    argument = reg[reg_index];
+	    argument = reg[reg_index-1];
 	} else if (OP_BREAD5(arg_index, opcode->arg_type) & ARG_TYPE_IMM) {
 /* The argument is an imm value */
 	    if (strcmp (op_end, ""))
-		op_end = parse_imm (op_end + 1, &exp, MIN_IMM, MAX_IMM);
+		op_end = parse_imm (op_end, &exp, MIN_IMM, MAX_IMM);
 	    else
 		as_fatal (_("Error in statement syntax"));
 
@@ -900,15 +908,15 @@ void md_assemble(char * str)
 	    argument = 0;
 	}
 
-	amask = (1 << OP_BREAD5(arg_index, opcode->arg_mask)) - 1;
-	ashift = OP_BREAD5(arg_index, opcode->arg_shift);
+	amask = ARG_MASK(arg_index,opcode);
+	ashift = ARG_SHIFT(arg_index, opcode);
 	inst |= (argument & amask) << ashift;
     }
 
 /* Clean up whitespaces. */
     while (ISSPACE (* op_end))
 	op_end ++;
-
+    if (*op_end) as_warn(_("Ignoring last part of the line '%s'."), op_end);
 
 /* From opcode and read arguments create a bitfield. */
     output = frag_more(isize);
