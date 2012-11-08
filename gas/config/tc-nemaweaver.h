@@ -30,26 +30,22 @@
 
 #define TC_RELOC_MANGLE(a,b,c) tc_reloc_mangle (a, b, c)
 
-/* Cons fix new we do not use. If we need any fancy parsing of
- * immediates this is what we should do */
 
-/* We dont want any fancy expression parsing */
+/* Tis is used to deal with the @GOT and @PLT flags. We dont use those (yet) */
+/* When unxommenting ass declaration in tc-nemaweaver.c */
+/* #define TC_CONS_FIX_NEW cons_fix_new_nemaweaver */
 /* #define TC_PARSE_CONS_EXPRESSION(EXP, NBYTES) parse_cons_expression_nemaweaver (EXP, NBYTES) */
-/* extern void parse_cons_expression_nemaweaver PARAMS ((expressionS *, int)); */
+/* extern void parse_cons_expression_nemaweaver PARAMS ((expressionS *, unsigned int)); */
 
 #define TC_FORCE_RELOCATION_SECTION(FIXP,SEG) 1
 #define UNDEFINED_DIFFERENCE_OK 1
 
 #define TC_FORCE_RELOCATION_LOCAL(FIX)	\
   (!(FIX)->fx_pcrel			\
-   || (FIX)->fx_r_type == BFD_RELOC_NEMAWEAVER_64_GOT	\
-   || (FIX)->fx_r_type == BFD_RELOC_NEMAWEAVER_64_PLT	\
-   || (FIX)->fx_r_type == BFD_RELOC_NEMAWEAVER_64_GOTOFF	\
-   || (FIX)->fx_r_type == BFD_RELOC_NEMAWEAVER_32_GOTOFF	\
    || TC_FORCE_RELOCATION (FIX))
 
-#define tc_fix_adjustable(X)  tc_nemaweaver_fix_adjustable(X)
-extern int tc_nemaweaver_fix_adjustable (struct fix *);
+/* #define tc_fix_adjustable(X)  tc_nemaweaver_fix_adjustable(X) */
+/* extern int tc_nemaweaver_fix_adjustable (struct fix *); */
 
 extern const struct relax_type md_relax_table[];
 #define TC_GENERIC_RELAX_TABLE md_relax_table

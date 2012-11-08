@@ -118,6 +118,10 @@
 #define ARG_TYPE(i, op)  (OP_BREAD5(i, op->arg_type))
 #define ARG_UIMM(op) (ARG_TYPE(op->imm_arg, op) & ARG_TYPE_UIMM)
 
+/* Get immediate position in bytes. */
+#define IMM_SIZE(op) ((OP_BREAD5((op)->imm_arg, (op)->arg_mask))/8)
+#define IMM_POS(op) ((ARG_SHIFT((op)->imm_arg, (op)) + IMM_SIZE(op)) / 8)
+
 struct op_code_struct
 {
     char * name;
@@ -252,7 +256,7 @@ char pvr_register_prefix[]     = "rpvr";
 /* End generated code: invalid opcode */
 
 /* Debuging function */
-#define fdd(format, arg...) printf("FD DEBUG: " format "\n", arg)
+#define fdd(format, arg...) printf("FD DEBUG: " format "\n", ##arg)
 
 
 #endif /* NEMAWEAVER_OPC */

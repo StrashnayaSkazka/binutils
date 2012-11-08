@@ -20,6 +20,7 @@
    02110-1301, USA.  */
 
 #include <stdio.h>
+#include <assert.h>
 #include "as.h"
 #include "bfd.h"
 #include "subsegs.h"
@@ -30,6 +31,7 @@
 #include <string.h>
 #include <dwarf2dbg.h>
 #include "aout/stab_gnu.h"
+#include "struc-symbol.h"
 
 #ifndef streq
 #define streq(a,b) (strcmp (a, b) == 0)
@@ -46,6 +48,11 @@ static bfd_boolean check_spl_reg (unsigned *);
 #define	INST_BYTE1(x)  (target_big_endian ? (((x) >> 16) & 0xFF) : (((x) >> 8)  & 0xFF))
 #define	INST_BYTE2(x)  (target_big_endian ? (((x) >> 8)  & 0xFF) : (((x) >> 16) & 0xFF))
 #define	INST_BYTE3(x)  (target_big_endian ? ( (x)        & 0xFF) : (((x) >> 24) & 0xFF))
+
+
+/* Options from the command line. */
+#define OPT_LITTLE_ENDIAN 1
+#define OPT_BIG_ENDIAN 2
 
 /* This array holds the chars that always start a comment.  If the
    pre-processor is disabled, these aren't very useful.  */
@@ -99,9 +106,9 @@ const relax_typeS md_relax_table[] =
 static struct hash_control * opcode_hash_control;	/* Opcode mnemonics.  */
 
 static segT sbss_segment = 0; 	/* Small bss section.  */
-static segT sbss2_segment = 0; 	/* Section not used.  */
-static segT sdata_segment = 0; 	/* Small data section.  */
-static segT sdata2_segment = 0; /* Small read-only section.  */
+/* static segT sbss2_segment = 0; 	/\* Section not used.  *\/ */
+/* static segT sdata_segment = 0; 	/\* Small data section.  *\/ */
+/* static segT sdata2_segment = 0; /\* Small read-only section.  *\/ */
 static segT rodata_segment = 0; /* read-only section.  */
 
 /* Generate a symbol for stabs information.  */
@@ -608,6 +615,9 @@ parse_imm(char * s, expressionS * e, int min, int max)
 
     /* s is now clean of prefixes. */
     s = parse_exp (s, e);	/* XXX: X_md is now our sophisticated version ;) */
+    if (e->X_op == O_symbol) {
+	e->X_add_symbol->bsym->udata.i = e->X_md;
+    }
 
     if ((e->X_op != O_constant && e->X_op != O_symbol))
 	as_fatal (_("operand must be absolute in range %d..%d, not %d"),
@@ -625,83 +635,14 @@ imm_value(expressionS e)
 {
     if (e.X_md & IMM_HIGHER16 && e.X_md & IMM_LOWER16)
 	as_fatal(_("you can either get the higher16 OR lower16."));
-    if (e.X_md & IMM_HIGHER16)
+    if (e.X_md & IMM_HIGHER16) {
+	fdd("Croping higher bits from: 0x%08x", (unsigned)e.X_add_number);
 	return e.X_add_number >> 16;
-    else if (e.X_md & IMM_LOWER16)
+    } else if (e.X_md & IMM_LOWER16) {
+	fdd("Croping lower bits from: 0x%08x", (unsigned)e.X_add_number);
 	return e.X_add_number & 0xffff;
-
+    }
     return e.X_add_number;
-}
-
-#if 0
-static char *
-parse_imm (char * s, expressionS * e, int min, int max)
-{
-    char *new_pointer;
-    char *atp;
-
-/* Find the start of "@GOT" or "@PLT" suffix (if any) */
-    for (atp = s; *atp != '@'; atp++)
-	if (is_end_of_line[(unsigned char) *atp])
-	    break;
-
-    if (*atp == '@')
-    {
-	if (strncmp (atp + 1, "GOTOFF", 5) == 0)
-	{
-	    *atp = 0;
-	    e->X_md = IMM_GOTOFF;
-	}
-	else if (strncmp (atp + 1, "GOT", 3) == 0)
-	{
-	    *atp = 0;
-	    e->X_md = IMM_GOT;
-	}
-	else if (strncmp (atp + 1, "PLT", 3) == 0)
-	{
-	    *atp = 0;
-	    e->X_md = IMM_PLT;
-	}
-	else
-	{
-	    atp = NULL;
-	    e->X_md = 0;
-	}
-	*atp = 0;
-    }
-    else
-    {
-	atp = NULL;
-	e->X_md = 0;
-    }
-
-    if (atp && !GOT_symbol)
-    {
-	GOT_symbol = symbol_find_or_make (GOT_SYMBOL_NAME);
-    }
-
-    new_pointer = parse_exp (s, e);
-
-    if (e->X_op == O_absent)
-	; /* An error message has already been emitted.  */
-    else if ((e->X_op != O_constant && e->X_op != O_symbol) )
-	as_fatal (_("operand must be a constant or a label"));
-    else if ((e->X_op == O_constant) && ((int) e->X_add_number < min
-					 || (int) e->X_add_number > max))
-    {
-	as_fatal (_("operand must be absolute in range %d..%d, not %d"),
-		  min, max, (int) e->X_add_number);
-    }
-
-    if (atp)
-    {
-	*atp = '@'; /* restore back (needed?)  */
-	if (new_pointer >= atp)
-	    new_pointer += (e->X_md == IMM_GOTOFF)?7:4;
-/* sizeof("@GOTOFF", "@GOT" or "@PLT") */
-
-    }
-    return new_pointer;
 }
 
 static char *
@@ -754,8 +695,10 @@ check_got (int * got_type, int * got_len)
     return tmpbuf;
 }
 
-extern void
-parse_cons_expression_nemaweaver (expressionS *exp, int size)
+/* Not called */
+__attribute__((unused))
+static void
+parse_cons_expression_nemaweaver (expressionS *exp, unsigned int size)
 {
     /* We do not have 4byte immediates. */
     if (size == 4)
@@ -782,14 +725,13 @@ parse_cons_expression_nemaweaver (expressionS *exp, int size)
     else
 	expression (exp);
 }
-#endif
 
 /* This is the guts of the machine-dependent assembler.  STR points to a
    machine dependent instruction.  This function is supposed to emit
    the frags/bytes it assembles to.  */
 
-static char * str_nemaweaver_ro_anchor = "RO";
-static char * str_nemaweaver_rw_anchor = "RW";
+/* static char * str_nemaweaver_ro_anchor = "RO"; */
+/* static char * str_nemaweaver_rw_anchor = "RW"; */
 
 static bfd_boolean
 check_spl_reg (unsigned * reg)
@@ -811,21 +753,45 @@ check_spl_reg (unsigned * reg)
    to make sure that the dynamic relocations are done correctly, so in
    some cases we force the original symbol to be used.  */
 
-int
-tc_nemaweaver_fix_adjustable (struct fix *fixP)
+/* int */
+/* tc_nemaweaver_fix_adjustable (struct fix *fixP) */
+/* { */
+/*     if (GOT_symbol && fixP->fx_subsy == GOT_symbol) */
+/* 	return 0; */
+
+/*     if (fixP->fx_r_type == BFD_RELOC_NEMAWEAVER_64_GOTOFF */
+/* 	|| fixP->fx_r_type == BFD_RELOC_NEMAWEAVER_32_GOTOFF */
+/* 	|| fixP->fx_r_type == BFD_RELOC_NEMAWEAVER_64_GOT */
+/* 	|| fixP->fx_r_type == BFD_RELOC_NEMAWEAVER_64_PLT) */
+/* 	return 0; */
+
+/*     return 1; */
+/* } */
+
+/* Tell how to relocate the result of the expression. */
+
+static enum bfd_reloc_code_real
+get_relocation_type (expressionS* e, struct op_code_struct *op)
 {
-    if (GOT_symbol && fixP->fx_subsy == GOT_symbol)
-	return 0;
+    if (!IMM_SIZE(op)) {
+	return BFD_RELOC_NONE;
+    }
 
-    if (fixP->fx_r_type == BFD_RELOC_NEMAWEAVER_64_GOTOFF
-	|| fixP->fx_r_type == BFD_RELOC_NEMAWEAVER_32_GOTOFF
-	|| fixP->fx_r_type == BFD_RELOC_NEMAWEAVER_64_GOT
-	|| fixP->fx_r_type == BFD_RELOC_NEMAWEAVER_64_PLT)
-	return 0;
-
-    return 1;
+    if (IMM_SIZE(op) == 2) {
+	if (e->X_md & IMM_LOWER16)
+	    return BFD_RELOC_NEMAWEAVER_32_LO;
+	else if (e->X_md & IMM_HIGHER16)
+	    return BFD_RELOC_NEMAWEAVER_32_HI;
+	else
+	    /* Return 16bit relocation. */
+	    /* Not reached for now */
+	    assert(0);
+    } else if (IMM_SIZE(op) == 3) {
+	return BFD_RELOC_NEMAWEAVER_26_JUMP;
+    }
+    /* Not reached */
+    assert (0);
 }
-
 
 void md_assemble(char * str)
 {
@@ -843,11 +809,11 @@ void md_assemble(char * str)
     expressionS exp;
     char name[20];
 
-/* Drop leading whitespace.  */
+    /* Drop leading whitespace.  */
     while (ISSPACE (* str))
 	str ++;
 
-/* Find the op code end. (the opcode name) */
+    /* Find the op code end. (the opcode name) */
     for (op_start = op_end = str;
 	 *op_end && !is_end_of_line[(unsigned char) *op_end] && *op_end != ' ';
 	 op_end++)
@@ -866,7 +832,7 @@ void md_assemble(char * str)
 	return;
     }
 
-/* Get the opcode struct. */
+    /* Get the opcode struct. */
     opcode = (struct op_code_struct *) hash_find (opcode_hash_control, name);
     if (opcode == NULL)
     {
@@ -874,15 +840,16 @@ void md_assemble(char * str)
 	return;
     }
 
-/* Unmasked bit sequence. */
+    /* Unmasked bit sequence. */
     inst = opcode->bit_sequence;
     isize = 4;
     reg_index = 0;
+    output = frag_more(isize);
 
-/* Read the arguments. */
+    /* Read the arguments. */
     for (arg_index = 0; OP_BREAD5(arg_index, opcode->arg_type) != ARG_TYPE_INV && arg_index < ARG_MAX; arg_index++) {
 	if (OP_BREAD5(arg_index, opcode->arg_type) & ARG_TYPE_REG) {
-/* The argument is a register. */
+ 	    /* The argument is a register. */
 	    if (strcmp (op_end, "")) {
 		op_end = parse_reg (op_end + 1, reg + reg_index++);
 	    } else {
@@ -896,14 +863,25 @@ void md_assemble(char * str)
 
 	    argument = reg[reg_index-1];
 	} else if (OP_BREAD5(arg_index, opcode->arg_type) & ARG_TYPE_IMM) {
-/* The argument is an imm value */
+	    unsigned short offset_of_fix = IMM_POS (opcode);
+	    unsigned short fix_size = IMM_SIZE (opcode);
+
+ 	    /* The argument is an imm value */
 	    if (strcmp (op_end, ""))
 		op_end = parse_imm (op_end, &exp, MIN_IMM, MAX_IMM);
 	    else
 		as_fatal (_("Error in statement syntax"));
 
-/* Imm may be some sort of expression(like a label). */
-	    argument = imm_value(exp); // exp.X_add_number;
+	    if (exp.X_op != O_constant)
+		fix_new_exp (frag_now,
+			     output - frag_now->fr_literal + offset_of_fix,
+			     fix_size,
+			     &exp,
+			     opcode->inst_offset_type,
+			     get_relocation_type(&exp, opcode));
+
+	    argument = imm_value(exp);
+	    fdd("Evaluated imm as: 0x%08x", argument);
 	} else {
 	    argument = 0;
 	}
@@ -913,14 +891,36 @@ void md_assemble(char * str)
 	inst |= (argument & amask) << ashift;
     }
 
-/* Clean up whitespaces. */
+    /* Clean up whitespaces. */
     while (ISSPACE (* op_end))
 	op_end ++;
     if (*op_end) as_warn(_("Ignoring last part of the line '%s'."), op_end);
 
-/* From opcode and read arguments create a bitfield. */
-    output = frag_more(isize);
+    /* If we encountered a symbol we have already creaqted a variable frag. */
+    /* if (opcode->imm_arg > 0 && exp.X_op != O_constant) { */
+    /* 	/\* Fuck: this means the entire frag being created is to be fixed. *\/ */
+    /* 	output = frag_var (rs_machine_dependent, /\* fr_type *\/ */
+    /* 			   isize,		 /\* Grow the frag by */
+    /* 						  * this. The frag is */
+    /* 						  * probably 0 */
+    /* 						  * now. Note that */
+    /* 						  * frag->fr_fx will */
+    /* 						  * always be 0 */
+    /* 						  * because we */
+    /* 						  * allocate this much */
+    /* 						  * and then */
+    /* 						  * fr_fix=this-howMuchWeAlocated */
+    /* 						  * == 0 *\/ */
+    /* 			   IMM_SIZE(opcode),	 /\* fr_var *\/ */
+    /* 			   opcode->inst_offset_type, /\* fr_subtype *\/ */
+    /* 			   exp.X_add_symbol,	     /\* fr_symbol *\/ */
+    /* 			   exp.X_add_number,	     /\* fr_offset *\/ */
+    /* 			   opcode->name); /\* Local use *\/ */
+    /* } else { */
+    /* 	output = frag_more(isize); */
+    /* } */
 
+    /* From opcode and read arguments create a bitfield. */
     output[0] = INST_BYTE0 (inst);
     output[1] = INST_BYTE1 (inst);
     output[2] = INST_BYTE2 (inst);
@@ -1015,6 +1015,8 @@ const char * md_shortopts = "";
 
 struct option md_longopts[] =
 {
+    {"EB", no_argument, NULL, OPT_BIG_ENDIAN},
+    {"EL", no_argument, NULL, OPT_LITTLE_ENDIAN},
     { NULL,          no_argument, NULL, 0}
 };
 
@@ -1042,7 +1044,15 @@ md_create_long_jump (char * ptr ATTRIBUTE_UNUSED,
     as_fatal (_("failed sanity check: long_jump"));
 }
 
-/* Called after relaxing, change the frags so they know how big they are.  */
+/* Called in cvt_frag_to_fill which is called inside size_seg. Size
+ * seg basically works through this to inform the segments of their
+ * own sizes. Since we have a fix now fr_var is fr_var is useless.
+ *
+ * This creates fixes
+ *
+ * This is called only if we have an unresolved symbol that we must create a fix for.
+ *
+ * XXX: we do not need to grow all we */
 
 void
 md_convert_frag (bfd * abfd ATTRIBUTE_UNUSED,
@@ -1050,90 +1060,52 @@ md_convert_frag (bfd * abfd ATTRIBUTE_UNUSED,
 		 fragS * fragP)
 {
     fixS *fixP;
+    enum bfd_reloc_code_real relocation_type;
 
-    switch (fragP->fr_subtype)
-    {
-    case UNDEFINED_PC_OFFSET:
-	fix_new (fragP, fragP->fr_fix, INST_WORD_SIZE * 2, fragP->fr_symbol,
-		 fragP->fr_offset, TRUE, BFD_RELOC_64_PCREL);
-	fragP->fr_fix += INST_WORD_SIZE * 2;
-	fragP->fr_var = 0;
+    switch (fragP->fr_symbol->bsym->udata.i) {
+    case IMM_LOWER16:
+	relocation_type = BFD_RELOC_NEMAWEAVER_32_LO;
 	break;
-    case DEFINED_ABS_SEGMENT:
-	if (fragP->fr_symbol == GOT_symbol)
-	    fix_new (fragP, fragP->fr_fix, INST_WORD_SIZE * 2, fragP->fr_symbol,
-		     fragP->fr_offset, TRUE, BFD_RELOC_NEMAWEAVER_64_GOTPC);
-	else
-	    fix_new (fragP, fragP->fr_fix, INST_WORD_SIZE * 2, fragP->fr_symbol,
-		     fragP->fr_offset, FALSE, BFD_RELOC_64);
-	fragP->fr_fix += INST_WORD_SIZE * 2;
-	fragP->fr_var = 0;
+    case IMM_HIGHER16:
+	relocation_type = BFD_RELOC_NEMAWEAVER_32_HI;
 	break;
-    case DEFINED_RO_SEGMENT:
-	fix_new (fragP, fragP->fr_fix, INST_WORD_SIZE, fragP->fr_symbol,
-		 fragP->fr_offset, FALSE, BFD_RELOC_NEMAWEAVER_32_ROSDA);
-	fragP->fr_fix += INST_WORD_SIZE;
-	fragP->fr_var = 0;
-	break;
-    case DEFINED_RW_SEGMENT:
-	fix_new (fragP, fragP->fr_fix, INST_WORD_SIZE, fragP->fr_symbol,
-		 fragP->fr_offset, FALSE, BFD_RELOC_NEMAWEAVER_32_RWSDA);
-	fragP->fr_fix += INST_WORD_SIZE;
-	fragP->fr_var = 0;
-	break;
-    case DEFINED_PC_OFFSET:
-	fix_new (fragP, fragP->fr_fix, INST_WORD_SIZE, fragP->fr_symbol,
-		 fragP->fr_offset, TRUE, BFD_RELOC_NEMAWEAVER_32_LO_PCREL);
-	fragP->fr_fix += INST_WORD_SIZE;
-	fragP->fr_var = 0;
-	break;
-    case LARGE_DEFINED_PC_OFFSET:
-	fix_new (fragP, fragP->fr_fix, INST_WORD_SIZE * 2, fragP->fr_symbol,
-		 fragP->fr_offset, TRUE, BFD_RELOC_64_PCREL);
-	fragP->fr_fix += INST_WORD_SIZE * 2;
-	fragP->fr_var = 0;
-	break;
-    case GOT_OFFSET:
-	fix_new (fragP, fragP->fr_fix, INST_WORD_SIZE * 2, fragP->fr_symbol,
-		 fragP->fr_offset, FALSE, BFD_RELOC_NEMAWEAVER_64_GOT);
-	fragP->fr_fix += INST_WORD_SIZE * 2;
-	fragP->fr_var = 0;
-	break;
-    case PLT_OFFSET:
-	fixP = fix_new (fragP, fragP->fr_fix, INST_WORD_SIZE * 2, fragP->fr_symbol,
-			fragP->fr_offset, TRUE, BFD_RELOC_NEMAWEAVER_64_PLT);
-	/* fixP->fx_plt = 1; */
-	(void) fixP;
-	fragP->fr_fix += INST_WORD_SIZE * 2;
-	fragP->fr_var = 0;
-	break;
-    case GOTOFF_OFFSET:
-	fix_new (fragP, fragP->fr_fix, INST_WORD_SIZE * 2, fragP->fr_symbol,
-		 fragP->fr_offset, FALSE, BFD_RELOC_NEMAWEAVER_64_GOTOFF);
-	fragP->fr_fix += INST_WORD_SIZE * 2;
-	fragP->fr_var = 0;
-	break;
-
     default:
-	abort ();
+	relocation_type = 0;
     }
+
+    fixP = fix_new (fragP,	/* Fragment (fx_frag) */
+		    fragP->fr_fix, /* Where to put the fix realtive to the beginning (fx_offset) */
+		    fragP->fr_var, /* How big is the fix (fx_size) */
+		    fragP->fr_symbol, /* The symbol to substitute (fx_addsy) */
+		    fragP->fr_offset, /* the offset (fx_offset) */
+		    fragP->fr_subtype, /* are we PC relative? (fx_pcrel) */
+		    relocation_type); /* Reloc type (fx_r_type) */
+    fragP->fr_fix += 4;
+    fragP->fr_var = 0;
+}
+
+static void swap(char* c1, char* c2)
+{
+    char tmp = *c1;
+    *c1 = *c2;
+    *c2 = tmp;
 }
 
 /* Applies the desired value to the specified location.
-   Also sets up addends for 'rela' type relocations.  */
+   Also sets up addends for 'rela' type relocations. This is called for fixes */
 void
 md_apply_fix (fixS *   fixP,
 	      valueT * valp,
 	      segT     segment)
 {
     char *       buf  = fixP->fx_where + fixP->fx_frag->fr_literal;
-    char *       file = fixP->fx_file ? fixP->fx_file : _("unknown");
+    /* char *       file = fixP->fx_file ? fixP->fx_file : _("unknown"); */
     const char * symname;
     /* Note: use offsetT because it is signed, valueT is unsigned.  */
     offsetT      val  = (offsetT) * valp;
     int          i;
-    struct op_code_struct * opcode1;
-    unsigned long inst1;
+    /* struct op_code_struct * opcode1; */
+    /* unsigned long inst1; */
 
     symname = fixP->fx_addsy ? S_GET_NAME (fixP->fx_addsy) : _("<unknown>");
 
@@ -1196,142 +1168,21 @@ md_apply_fix (fixS *   fixP,
     else
 	fixP->fx_done = 1;
 
-    switch (fixP->fx_r_type)
-    {
-    case BFD_RELOC_NEMAWEAVER_32_LO:
-    case BFD_RELOC_NEMAWEAVER_32_LO_PCREL:
-	if (target_big_endian)
-	{
-	    buf[2] |= ((val >> 8) & 0xff);
-	    buf[3] |= (val & 0xff);
-	}
-	else
-	{
-	    buf[1] |= ((val >> 8) & 0xff);
-	    buf[0] |= (val & 0xff);
-	}
-	break;
-    case BFD_RELOC_NEMAWEAVER_32_ROSDA:
-    case BFD_RELOC_NEMAWEAVER_32_RWSDA:
-	/* Don't do anything if the symbol is not defined.  */
-	if (fixP->fx_addsy == NULL || S_IS_DEFINED (fixP->fx_addsy))
-	{
-	    if (((val & 0xFFFF8000) != 0) && ((val & 0xFFFF8000) != 0xFFFF8000))
-		as_bad_where (file, fixP->fx_line,
-			      _("pcrel for branch to %s too far (0x%x)"),
-			      symname, (int) val);
-	    if (target_big_endian)
-	    {
-		buf[2] |= ((val >> 8) & 0xff);
-		buf[3] |= (val & 0xff);
-	    }
-	    else
-	    {
-		buf[1] |= ((val >> 8) & 0xff);
-		buf[0] |= (val & 0xff);
-	    }
-	}
-	break;
-    case BFD_RELOC_32:
-    case BFD_RELOC_RVA:
-    case BFD_RELOC_32_PCREL:
-    case BFD_RELOC_NEMAWEAVER_32_SYM_OP_SYM:
-	/* Don't do anything if the symbol is not defined.  */
-	if (fixP->fx_addsy == NULL || S_IS_DEFINED (fixP->fx_addsy))
-	{
-	    if (target_big_endian)
-	    {
-		buf[0] |= ((val >> 24) & 0xff);
-		buf[1] |= ((val >> 16) & 0xff);
-		buf[2] |= ((val >> 8) & 0xff);
-		buf[3] |= (val & 0xff);
-	    }
-	    else
-	    {
-		buf[3] |= ((val >> 24) & 0xff);
-		buf[2] |= ((val >> 16) & 0xff);
-		buf[1] |= ((val >> 8) & 0xff);
-		buf[0] |= (val & 0xff);
-	    }
-	}
-	break;
-    case BFD_RELOC_64_PCREL:
-    case BFD_RELOC_64:
-	/* Add an imm instruction.  First save the current instruction.  */
-	for (i = 0; i < INST_WORD_SIZE; i++)
-	    buf[i + INST_WORD_SIZE] = buf[i];
 
-	/* Generate the imm instruction.  */
-	opcode1 = (struct op_code_struct *) hash_find (opcode_hash_control, "imm");
-	if (opcode1 == NULL)
-	{
-	    as_bad (_("unknown opcode \"%s\""), "imm");
-	    return;
-	}
-
-	inst1 = opcode1->bit_sequence;
-	if (fixP->fx_addsy == NULL || S_IS_DEFINED (fixP->fx_addsy))
-	    inst1 |= ((val & 0xFFFF0000) >> 16) & IMM_MASK;
-
-	buf[0] = INST_BYTE0 (inst1);
-	buf[1] = INST_BYTE1 (inst1);
-	buf[2] = INST_BYTE2 (inst1);
-	buf[3] = INST_BYTE3 (inst1);
-
-	/* Add the value only if the symbol is defined.  */
-	if (fixP->fx_addsy == NULL || S_IS_DEFINED (fixP->fx_addsy))
-	{
-	    if (target_big_endian)
-	    {
-		buf[6] |= ((val >> 8) & 0xff);
-		buf[7] |= (val & 0xff);
-	    }
-	    else
-	    {
-		buf[5] |= ((val >> 8) & 0xff);
-		buf[4] |= (val & 0xff);
-	    }
-	}
-	break;
-
-    case BFD_RELOC_NEMAWEAVER_64_GOTPC:
-    case BFD_RELOC_NEMAWEAVER_64_GOT:
-    case BFD_RELOC_NEMAWEAVER_64_PLT:
-    case BFD_RELOC_NEMAWEAVER_64_GOTOFF:
-	/* Add an imm instruction.  First save the current instruction.  */
-	for (i = 0; i < INST_WORD_SIZE; i++)
-	    buf[i + INST_WORD_SIZE] = buf[i];
-
-	/* Generate the imm instruction.  */
-	opcode1 = (struct op_code_struct *) hash_find (opcode_hash_control, "imm");
-	if (opcode1 == NULL)
-	{
-	    as_bad (_("unknown opcode \"%s\""), "imm");
-	    return;
-	}
-
-	inst1 = opcode1->bit_sequence;
-
-	/* We can fixup call to a defined non-global address
-	   within the same section only.  */
-	buf[0] = INST_BYTE0 (inst1);
-	buf[1] = INST_BYTE1 (inst1);
-	buf[2] = INST_BYTE2 (inst1);
-	buf[3] = INST_BYTE3 (inst1);
-	return;
-
-    default:
-	break;
+    for (i=0 ; i < fixP->fx_size; i++) {
+	buf[i] |= (val >> (8*i)) & 0xff;
     }
+
+    /* buf[0] is thre MSB and wi put in there the LSB of val. */
+    if (target_big_endian)
+	for (i = 0; i< fixP->fx_size/2; i++)
+	    swap(buf+i, buf + fixP->fx_size - i - 1);
 
     if (fixP->fx_addsy == NULL)
     {
 	/* This fixup has been resolved.  Create a reloc in case the linker
 	   moves code around due to relaxing.  */
-	if (fixP->fx_r_type == BFD_RELOC_64_PCREL)
-	    fixP->fx_r_type = BFD_RELOC_NEMAWEAVER_64_NONE;
-	else
-	    fixP->fx_r_type = BFD_RELOC_NONE;
+	fixP->fx_r_type = BFD_RELOC_NONE;
 	fixP->fx_addsy = section_symbol (absolute_section);
     }
     return;
@@ -1350,141 +1201,143 @@ md_operand (expressionS * expressionP)
 
 
 /* Called just before address relaxation, return the length
-   by which a fragment must grow to reach it's destination.  */
+   by which a fragment must grow to reach it's destination. This should always be 0.  */
 
 int
-md_estimate_size_before_relax (fragS * fragP,
-			       segT segment_type)
+md_estimate_size_before_relax (fragS * fragP ATTRIBUTE_UNUSED,
+			       segT segment_type ATTRIBUTE_UNUSED)
 {
-    sbss_segment = bfd_get_section_by_name (stdoutput, ".sbss");
-    sbss2_segment = bfd_get_section_by_name (stdoutput, ".sbss2");
-    sdata_segment = bfd_get_section_by_name (stdoutput, ".sdata");
-    sdata2_segment = bfd_get_section_by_name (stdoutput, ".sdata2");
-
-    switch (fragP->fr_subtype)
-    {
-    case INST_PC_OFFSET:
-	/* Used to be a PC-relative branch.  */
-	if (!fragP->fr_symbol)
-        {
-	    /* We know the abs value: Should never happen.  */
-	    as_bad (_("Absolute PC-relative value in relaxation code.  Assembler error....."));
-	    abort ();
-        }
-	else if ((S_GET_SEGMENT (fragP->fr_symbol) == segment_type))
-        {
-	    fragP->fr_subtype = DEFINED_PC_OFFSET;
-	    /* Don't know now whether we need an imm instruction.  */
-	    fragP->fr_var = INST_WORD_SIZE;
-        }
-	else if (S_IS_DEFINED (fragP->fr_symbol)
-		 && (((S_GET_SEGMENT (fragP->fr_symbol))->flags & SEC_CODE) == 0))
-        {
-	    /* Cannot have a PC-relative branch to a diff segment.  */
-	    as_bad (_("PC relative branch to label %s which is not in the instruction space"),
-		    S_GET_NAME (fragP->fr_symbol));
-	    fragP->fr_subtype = UNDEFINED_PC_OFFSET;
-	    fragP->fr_var = INST_WORD_SIZE*2;
-        }
-	else
-	{
-	    fragP->fr_subtype = UNDEFINED_PC_OFFSET;
-	    fragP->fr_var = INST_WORD_SIZE*2;
-	}
-	break;
-
-    case INST_NO_OFFSET:
-	/* Used to be a reference to somewhere which was unknown.  */
-	if (fragP->fr_symbol)
-        {
-	    if (fragP->fr_opcode == NULL)
-	    {
-		/* Used as an absolute value.  */
-		fragP->fr_subtype = DEFINED_ABS_SEGMENT;
-		/* Variable part does not change.  */
-		fragP->fr_var = INST_WORD_SIZE*2;
-            }
-	    else if (streq (fragP->fr_opcode, str_nemaweaver_ro_anchor))
-	    {
-		/* It is accessed using the small data read only anchor.  */
-		if ((S_GET_SEGMENT (fragP->fr_symbol) == &bfd_com_section)
-		    || (S_GET_SEGMENT (fragP->fr_symbol) == sdata2_segment)
-		    || (S_GET_SEGMENT (fragP->fr_symbol) == sbss2_segment)
-		    || (! S_IS_DEFINED (fragP->fr_symbol)))
-		{
-		    fragP->fr_subtype = DEFINED_RO_SEGMENT;
-		    fragP->fr_var = INST_WORD_SIZE;
-                }
-		else
-		{
-		    /* Variable not in small data read only segment accessed
-		       using small data read only anchor.  */
-		    char *file = fragP->fr_file ? fragP->fr_file : _("unknown");
-
-		    as_bad_where (file, fragP->fr_line,
-				  _("Variable is accessed using small data read "
-				    "only anchor, but it is not in the small data "
-				    "read only section"));
-		    fragP->fr_subtype = DEFINED_RO_SEGMENT;
-		    fragP->fr_var = INST_WORD_SIZE;
-                }
-            }
-	    else if (streq (fragP->fr_opcode, str_nemaweaver_rw_anchor))
-	    {
-		if ((S_GET_SEGMENT (fragP->fr_symbol) == &bfd_com_section)
-		    || (S_GET_SEGMENT (fragP->fr_symbol) == sdata_segment)
-		    || (S_GET_SEGMENT (fragP->fr_symbol) == sbss_segment)
-		    || (!S_IS_DEFINED (fragP->fr_symbol)))
-	        {
-		    /* It is accessed using the small data read write anchor.  */
-		    fragP->fr_subtype = DEFINED_RW_SEGMENT;
-		    fragP->fr_var = INST_WORD_SIZE;
-                }
-		else
-		{
-		    char *file = fragP->fr_file ? fragP->fr_file : _("unknown");
-
-		    as_bad_where (file, fragP->fr_line,
-				  _("Variable is accessed using small data read "
-				    "write anchor, but it is not in the small data "
-				    "read write section"));
-		    fragP->fr_subtype = DEFINED_RW_SEGMENT;
-		    fragP->fr_var = INST_WORD_SIZE;
-                }
-            }
-	    else
-	    {
-		as_bad (_("Incorrect fr_opcode value in frag.  Internal error....."));
-		abort ();
-            }
-	}
-	else
-	{
-	    /* We know the abs value: Should never happen.  */
-	    as_bad (_("Absolute value in relaxation code.  Assembler error....."));
-	    abort ();
-	}
-	break;
-
-    case UNDEFINED_PC_OFFSET:
-    case LARGE_DEFINED_PC_OFFSET:
-    case DEFINED_ABS_SEGMENT:
-    case GOT_OFFSET:
-    case PLT_OFFSET:
-    case GOTOFF_OFFSET:
-	fragP->fr_var = INST_WORD_SIZE*2;
-	break;
-    case DEFINED_RO_SEGMENT:
-    case DEFINED_RW_SEGMENT:
-    case DEFINED_PC_OFFSET:
-	fragP->fr_var = INST_WORD_SIZE;
-	break;
-    default:
-	abort ();
-    }
-
-    return fragP->fr_var;
+    return 4;
 }
+/*     sbss_segment = bfd_get_section_by_name (stdoutput, ".sbss"); */
+/*     sbss2_segment = bfd_get_section_by_name (stdoutput, ".sbss2"); */
+/*     sdata_segment = bfd_get_section_by_name (stdoutput, ".sdata"); */
+/*     sdata2_segment = bfd_get_section_by_name (stdoutput, ".sdata2"); */
+
+/*     switch (fragP->fr_subtype) */
+/*     { */
+/*     case INST_PC_OFFSET: */
+/* 	/\* Used to be a PC-relative branch.  *\/ */
+/* 	if (!fragP->fr_symbol) */
+/*         { */
+/* 	    /\* We know the abs value: Should never happen.  *\/ */
+/* 	    as_bad (_("Absolute PC-relative value in relaxation code.  Assembler error.....")); */
+/* 	    abort (); */
+/*         } */
+/* 	else if ((S_GET_SEGMENT (fragP->fr_symbol) == segment_type)) */
+/*         { */
+/* 	    fragP->fr_subtype = DEFINED_PC_OFFSET; */
+/* 	    /\* Don't know now whether we need an imm instruction.  *\/ */
+/* 	    fragP->fr_var = INST_WORD_SIZE; */
+/*         } */
+/* 	else if (S_IS_DEFINED (fragP->fr_symbol) */
+/* 		 && (((S_GET_SEGMENT (fragP->fr_symbol))->flags & SEC_CODE) == 0)) */
+/*         { */
+/* 	    /\* Cannot have a PC-relative branch to a diff segment.  *\/ */
+/* 	    as_bad (_("PC relative branch to label %s which is not in the instruction space"), */
+/* 		    S_GET_NAME (fragP->fr_symbol)); */
+/* 	    fragP->fr_subtype = UNDEFINED_PC_OFFSET; */
+/* 	    fragP->fr_var = INST_WORD_SIZE*2; */
+/*         } */
+/* 	else */
+/* 	{ */
+/* 	    fragP->fr_subtype = UNDEFINED_PC_OFFSET; */
+/* 	    fragP->fr_var = INST_WORD_SIZE*2; */
+/* 	} */
+/* 	break; */
+
+/*     case INST_NO_OFFSET: */
+/* 	/\* Used to be a reference to somewhere which was unknown.  *\/ */
+/* 	if (fragP->fr_symbol) */
+/*         { */
+/* 	    if (fragP->fr_opcode == NULL) */
+/* 	    { */
+/* 		/\* Used as an absolute value.  *\/ */
+/* 		fragP->fr_subtype = DEFINED_ABS_SEGMENT; */
+/* 		/\* Variable part does not change.  *\/ */
+/* 		fragP->fr_var = INST_WORD_SIZE*2; */
+/*             } */
+/* 	    else if (streq (fragP->fr_opcode, str_nemaweaver_ro_anchor)) */
+/* 	    { */
+/* 		/\* It is accessed using the small data read only anchor.  *\/ */
+/* 		if ((S_GET_SEGMENT (fragP->fr_symbol) == &bfd_com_section) */
+/* 		    || (S_GET_SEGMENT (fragP->fr_symbol) == sdata2_segment) */
+/* 		    || (S_GET_SEGMENT (fragP->fr_symbol) == sbss2_segment) */
+/* 		    || (! S_IS_DEFINED (fragP->fr_symbol))) */
+/* 		{ */
+/* 		    fragP->fr_subtype = DEFINED_RO_SEGMENT; */
+/* 		    fragP->fr_var = INST_WORD_SIZE; */
+/*                 } */
+/* 		else */
+/* 		{ */
+/* 		    /\* Variable not in small data read only segment accessed */
+/* 		       using small data read only anchor.  *\/ */
+/* 		    char *file = fragP->fr_file ? fragP->fr_file : _("unknown"); */
+
+/* 		    as_bad_where (file, fragP->fr_line, */
+/* 				  _("Variable is accessed using small data read " */
+/* 				    "only anchor, but it is not in the small data " */
+/* 				    "read only section")); */
+/* 		    fragP->fr_subtype = DEFINED_RO_SEGMENT; */
+/* 		    fragP->fr_var = INST_WORD_SIZE; */
+/*                 } */
+/*             } */
+/* 	    else if (streq (fragP->fr_opcode, str_nemaweaver_rw_anchor)) */
+/* 	    { */
+/* 		if ((S_GET_SEGMENT (fragP->fr_symbol) == &bfd_com_section) */
+/* 		    || (S_GET_SEGMENT (fragP->fr_symbol) == sdata_segment) */
+/* 		    || (S_GET_SEGMENT (fragP->fr_symbol) == sbss_segment) */
+/* 		    || (!S_IS_DEFINED (fragP->fr_symbol))) */
+/* 	        { */
+/* 		    /\* It is accessed using the small data read write anchor.  *\/ */
+/* 		    fragP->fr_subtype = DEFINED_RW_SEGMENT; */
+/* 		    fragP->fr_var = INST_WORD_SIZE; */
+/*                 } */
+/* 		else */
+/* 		{ */
+/* 		    char *file = fragP->fr_file ? fragP->fr_file : _("unknown"); */
+
+/* 		    as_bad_where (file, fragP->fr_line, */
+/* 				  _("Variable is accessed using small data read " */
+/* 				    "write anchor, but it is not in the small data " */
+/* 				    "read write section")); */
+/* 		    fragP->fr_subtype = DEFINED_RW_SEGMENT; */
+/* 		    fragP->fr_var = INST_WORD_SIZE; */
+/*                 } */
+/*             } */
+/* 	    else */
+/* 	    { */
+/* 		as_bad (_("Incorrect fr_opcode value in frag.  Internal error.....")); */
+/* 		abort (); */
+/*             } */
+/* 	} */
+/* 	else */
+/* 	{ */
+/* 	    /\* We know the abs value: Should never happen.  *\/ */
+/* 	    as_bad (_("Absolute value in relaxation code.  Assembler error.....")); */
+/* 	    abort (); */
+/* 	} */
+/* 	break; */
+
+/*     case UNDEFINED_PC_OFFSET: */
+/*     case LARGE_DEFINED_PC_OFFSET: */
+/*     case DEFINED_ABS_SEGMENT: */
+/*     case GOT_OFFSET: */
+/*     case PLT_OFFSET: */
+/*     case GOTOFF_OFFSET: */
+/* 	fragP->fr_var = INST_WORD_SIZE*2; */
+/* 	break; */
+/*     case DEFINED_RO_SEGMENT: */
+/*     case DEFINED_RW_SEGMENT: */
+/*     case DEFINED_PC_OFFSET: */
+/* 	fragP->fr_var = INST_WORD_SIZE; */
+/* 	break; */
+/*     default: */
+/* 	abort (); */
+/*     } */
+
+/*     return fragP->fr_var; */
+/* } */
 
 /* Put number into target byte order.  */
 
@@ -1536,75 +1389,30 @@ md_pcrel_from_section (fixS * fixp, segT sec ATTRIBUTE_UNUSED)
 #define F(SZ,PCREL)		(((SZ) << 1) + (PCREL))
 #define MAP(SZ,PCREL,TYPE)	case F (SZ, PCREL): code = (TYPE); break
 
+
+/* Generate a reloc for a fixup.  */
+
 arelent *
-tc_gen_reloc (asection * section ATTRIBUTE_UNUSED, fixS * fixp)
+tc_gen_reloc (asection *seg ATTRIBUTE_UNUSED, fixS *fixp)
 {
-    arelent * rel;
-    bfd_reloc_code_real_type code;
+    arelent *reloc;
 
-    switch (fixp->fx_r_type)
-    {
-    case BFD_RELOC_NONE:
-    case BFD_RELOC_NEMAWEAVER_64_NONE:
-    case BFD_RELOC_32:
-    case BFD_RELOC_NEMAWEAVER_32_LO:
-    case BFD_RELOC_NEMAWEAVER_32_LO_PCREL:
-    case BFD_RELOC_RVA:
-    case BFD_RELOC_64:
-    case BFD_RELOC_64_PCREL:
-    case BFD_RELOC_NEMAWEAVER_32_ROSDA:
-    case BFD_RELOC_NEMAWEAVER_32_RWSDA:
-    case BFD_RELOC_NEMAWEAVER_32_SYM_OP_SYM:
-    case BFD_RELOC_NEMAWEAVER_64_GOTPC:
-    case BFD_RELOC_NEMAWEAVER_64_GOT:
-    case BFD_RELOC_NEMAWEAVER_64_PLT:
-    case BFD_RELOC_NEMAWEAVER_64_GOTOFF:
-    case BFD_RELOC_NEMAWEAVER_32_GOTOFF:
-	code = fixp->fx_r_type;
-	break;
+    reloc = (arelent *) xmalloc (sizeof (arelent));
 
-    default:
-	switch (F (fixp->fx_size, fixp->fx_pcrel))
-        {
-	    MAP (1, 0, BFD_RELOC_8);
-	    MAP (2, 0, BFD_RELOC_16);
-	    MAP (4, 0, BFD_RELOC_32);
-	    MAP (1, 1, BFD_RELOC_8_PCREL);
-	    MAP (2, 1, BFD_RELOC_16_PCREL);
-	    MAP (4, 1, BFD_RELOC_32_PCREL);
-        default:
-	    code = fixp->fx_r_type;
-	    as_bad (_("Can not do %d byte %srelocation"),
-		    fixp->fx_size,
-		    fixp->fx_pcrel ? _("pc-relative") : "");
-        }
-	break;
-    }
-
-    rel = (arelent *) xmalloc (sizeof (arelent));
-    rel->sym_ptr_ptr = (asymbol **) xmalloc (sizeof (asymbol *));
-
-    if (code == BFD_RELOC_NEMAWEAVER_32_SYM_OP_SYM)
-	*rel->sym_ptr_ptr = symbol_get_bfdsym (fixp->fx_subsy);
-    else
-	*rel->sym_ptr_ptr = symbol_get_bfdsym (fixp->fx_addsy);
-
-    rel->address = fixp->fx_frag->fr_address + fixp->fx_where;
-    /* Always pass the addend along!  */
-    rel->addend = fixp->fx_offset;
-    rel->howto = bfd_reloc_type_lookup (stdoutput, code);
-
-    if (rel->howto == NULL)
+    reloc->sym_ptr_ptr = (asymbol **) xmalloc (sizeof (asymbol *));
+    *reloc->sym_ptr_ptr = symbol_get_bfdsym (fixp->fx_addsy);
+    reloc->address = fixp->fx_frag->fr_address + fixp->fx_where;
+    reloc->howto = bfd_reloc_type_lookup (stdoutput, fixp->fx_r_type);
+    if (reloc->howto == (reloc_howto_type *) NULL)
     {
 	as_bad_where (fixp->fx_file, fixp->fx_line,
-		      _("Cannot represent relocation type %s"),
-		      bfd_get_reloc_code_name (code));
-
-	/* Set howto to a garbage value so that we can keep going.  */
-	rel->howto = bfd_reloc_type_lookup (stdoutput, BFD_RELOC_32);
-	gas_assert (rel->howto != NULL);
+		      _("reloc %d not supported by object file format"),
+		      (int) fixp->fx_r_type);
+	return NULL;
     }
-    return rel;
+    reloc->addend = fixp->fx_offset;
+
+    return reloc;
 }
 
 int
@@ -1612,6 +1420,9 @@ md_parse_option (int c, char * arg ATTRIBUTE_UNUSED)
 {
     switch (c)
     {
+    case OPT_LITTLE_ENDIAN:
+	target_big_endian = 0;
+	break;
     default:
 	return 0;
     }
@@ -1624,31 +1435,30 @@ md_show_usage (FILE * stream ATTRIBUTE_UNUSED)
     fprintf(stream, _("NemaWeaver: no options\n"));
 }
 
-#if 0
+/* This fnctionaluty should be in md_assemble. Actually it should be
+ * mived here. */
 /* Create a fixup for a cons expression.  If parse_cons_expression_nemaweaver
    found a machine specific op in an expression,
-   then we create relocs accordingly.  */
-
+   then we create relocs accordingly. */
+/* Turn the expression into a fixup if  */
 void
 cons_fix_new_nemaweaver (fragS * frag,
 			 int where,
 			 int size,
 			 expressionS *exp)
 {
-
-    bfd_reloc_code_real_type r;
+    bfd_reloc_code_real_type r = 0;
 
     if ((exp->X_op == O_subtract) && (exp->X_add_symbol) &&
 	(exp->X_op_symbol) && (now_seg != absolute_section) && (size == 4)
-	&& (!S_IS_LOCAL (exp->X_op_symbol)))
-	r = BFD_RELOC_NEMAWEAVER_32_SYM_OP_SYM;
-    else if (exp->X_md == IMM_GOTOFF && exp->X_op == O_symbol_rva)
-    {
-	exp->X_op = O_symbol;
-	r = BFD_RELOC_NEMAWEAVER_32_GOTOFF;
-    }
-    else
-    {
+	&& (!S_IS_LOCAL (exp->X_op_symbol))) {
+	if (exp->X_md == IMM_HIGHER16)
+	    r = BFD_RELOC_NEMAWEAVER_32_HI;
+	else if (exp->X_md == IMM_LOWER16)
+	    r = BFD_RELOC_NEMAWEAVER_32_LO;
+	else
+	    as_bad(_("A 32bit symbol is being pushed into a smaller space."));
+    } else {
 	switch (size)
         {
         case 1:
@@ -1658,9 +1468,13 @@ cons_fix_new_nemaweaver (fragS * frag,
 	    r = BFD_RELOC_16;
 	    break;
         case 4:
+	    /* I am not sure if relocation refers to the entire
+	     * instruction or just the fixup. */
+	    /* as_bad (_("unsupported BFD relocation size %u"), size); */
 	    r = BFD_RELOC_32;
 	    break;
         case 8:
+	    as_bad (_("unsupported BFD relocation size %u"), size);
 	    r = BFD_RELOC_64;
 	    break;
         default:
@@ -1671,4 +1485,3 @@ cons_fix_new_nemaweaver (fragS * frag,
     }
     fix_new_exp (frag, where, size, exp, 0, r);
 }
-#endif

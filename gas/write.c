@@ -151,7 +151,7 @@ fix_new_internal (fragS *frag,		/* Which frag?  */
 		  symbolS *sub_symbol,	/* X_op_symbol.  */
 		  offsetT offset,	/* X_add_number.  */
 		  int pcrel,		/* TRUE if PC-relative relocation.  */
-		  RELOC_ENUM r_type ATTRIBUTE_UNUSED /* Relocation type.  */,
+		  RELOC_ENUM r_type     /* Relocation type.  */,
 		  int at_beginning)	/* Add to the start of the list?  */
 {
   fixS *fixP;
@@ -486,8 +486,10 @@ cvt_frag_to_fill (segT sec ATTRIBUTE_UNUSED, fragS *fragP)
       break;
 
     case rs_machine_dependent:
+	printf ("My offset: %d, next offset: %d, fixed bytes: %d, var bytes: %d, line: %d\n", (int) fragP->fr_address, (int) fragP->fr_next->fr_address, (int)fragP->fr_fix, (int) fragP->fr_var, (int)fragP->fr_line);
       md_convert_frag (stdoutput, sec, fragP);
 
+      /* Frag should be fixed by now apparently */
       gas_assert (fragP->fr_next == NULL
 	      || ((offsetT) (fragP->fr_next->fr_address - fragP->fr_address)
 		  == fragP->fr_fix));
@@ -1178,7 +1180,7 @@ get_frag_for_reloc (fragS *last_frag,
 		    const struct reloc_list *r)
 {
   fragS *f;
-  
+
   for (f = last_frag; f != NULL; f = f->fr_next)
     if (f->fr_address <= r->u.b.r.address
 	&& r->u.b.r.address < f->fr_address + f->fr_fix)
@@ -1566,6 +1568,7 @@ write_contents (bfd *abfd ATTRIBUTE_UNUSED,
       gas_assert (f->fr_type == rs_fill);
       if (f->fr_fix)
 	{
+	  /* Whrite the bytes we know we have. */
 	  x = bfd_set_section_contents (stdoutput, sec,
 					f->fr_literal, (file_ptr) offset,
 					(bfd_size_type) f->fr_fix);
