@@ -1,6 +1,17 @@
-* Tasks [26%]
+* Tasks [25%]
   An organization of the tasks to complete until binutils is up and
   running. This can be used as a reference later.
+
+  To test for now i use an extremely simple test.s
+
+  #+BEGIN_SRC ASM
+  	bal r10 0xfff
+	j main
+	movz r10,  r9, r12
+main:
+	ori r0 r0 :higher16:0x12345678
+
+  #+END_SRC
 
 ** [66%] Make a first version of the elf32-nemaweaver.c file
    This manages tha way we interact with elf.
@@ -59,13 +70,20 @@
      like tc-nemawever needs to take care of some
 
 *** TODO apply fix
+    :PROPERTIES:
+    :State: Testing to understand what other transformations happen to the literal
+    :END:
+
     This merely applies a fix to a segment. What do relocations do
     about this? Doesnt this make crating a fix given a relocation
     redundant?
 
 **** TODO It looks like this does not respect the endianness.
      Maybe fx_where is wrong. I may have set it in bits when it is in
-     bytes. val may be reverse. The problem is it is symmetric (0x0000000c)
+     bytes. val may be reverse. The problem is it is symmetric (0x0000000c).
+
+     However fixes may have been create in the wrong way. Hat we are
+     supposed to do is pu the fix in the literal.
 
 *** TODO gen reloc
     Generate a machine dependent relocation. Looks like this should
@@ -87,6 +105,9 @@
 *** TODO md convert frag
     This is supposed to inform segments of their own sizes but in fact
     it creates fixes, work this out and write it correctly.
+
+** TODO Move documentation to wiki
+   /self explanatory/
 
 ** TODO Compilation
    Compile everything. Document correct arguments and setup if not

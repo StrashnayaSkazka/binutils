@@ -1170,30 +1170,30 @@ md_apply_fix (fixS *   fixP,
 
     buf0 = buf; buf1 = buf+1; buf2 = buf+2;
 
-    /* val = 0x12345678; */
-    /* switch (fixP->fx_r_type) */
-    /* { */
-    /* case BFD_RELOC_NEMAWEAVER_32_HI: */
-    /* 	val >>= 16; */
-    /* 	/\* Fall through *\/ */
-    /* case BFD_RELOC_NEMAWEAVER_32_LO: */
-    /* 	*buf0 = (val >> 8) & 0xff; */
-    /* 	*buf1 = val & 0xff; */
-    /* 	break; */
-    /* case BFD_RELOC_NEMAWEAVER_26_JUMP: */
-    /* 	val >>= 2; 		/\* 32bits -> 30bits, now only use the 3 LSB *\/ */
-    /* 	*buf0 = (val >> 16) & 0xff; */
-    /* 	*buf1 = (val >> 8) & 0xff; */
-    /* 	*buf2 = val & 0xff; */
-    /* 	break; */
-    /* default: */
-    /* 	as_bad(_("Unrecognized reloc type.")); */
-    /* } */
+    val = 0x12345678;
+    switch (fixP->fx_r_type)
+    {
+    case BFD_RELOC_NEMAWEAVER_32_HI:
+    	val >>= 16;
+    	/* Fall through */
+    case BFD_RELOC_NEMAWEAVER_32_LO:
+    	*buf0 = (val >> 8) & 0xff;
+    	*buf1 = val & 0xff;
+    	break;
+    case BFD_RELOC_NEMAWEAVER_26_JUMP:
+    	val >>= 2; 		/* 32bits -> 30bits, now only use the 3 LSB */
+    	*buf0 = (val >> 16) & 0xff;
+    	*buf1 = (val >> 8) & 0xff;
+    	*buf2 = val & 0xff;
+    	break;
+    default:
+    	as_bad(_("Unrecognized reloc type."));
+    }
 
-    /* /\* buf[0] is thre MSB and wi put in there the LSB of val. *\/ */
-    /* if (target_big_endian) */
-    /* 	for (i = 0; i< fixP->fx_size/2; i++) */
-    /* 	    swap(buf+i, buf + fixP->fx_size - i - 1); */
+    /* buf[0] is thre MSB and wi put in there the LSB of val. */
+    if (target_big_endian)
+    	for (i = 0; i< fixP->fx_size/2; i++)
+    	    swap(buf+i, buf + fixP->fx_size - i - 1);
 
     if (fixP->fx_addsy == NULL)
     {
