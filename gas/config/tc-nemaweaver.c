@@ -49,7 +49,6 @@ static bfd_boolean check_spl_reg (unsigned *);
 #define	INST_BYTE2(x)  (target_big_endian ? (((x) >> 8)  & 0xFF) : (((x) >> 16) & 0xFF))
 #define	INST_BYTE3(x)  (target_big_endian ? ( (x)        & 0xFF) : (((x) >> 24) & 0xFF))
 
-
 /* Options from the command line. */
 #define OPT_LITTLE_ENDIAN 1
 #define OPT_BIG_ENDIAN 2
@@ -636,10 +635,8 @@ imm_value(expressionS e)
     if (e.X_md & IMM_HIGHER16 && e.X_md & IMM_LOWER16)
 	as_fatal(_("you can either get the higher16 OR lower16."));
     if (e.X_md & IMM_HIGHER16) {
-	fdd("Croping higher bits from: 0x%08x", (unsigned)e.X_add_number);
 	return e.X_add_number >> 16;
     } else if (e.X_md & IMM_LOWER16) {
-	fdd("Croping lower bits from: 0x%08x", (unsigned)e.X_add_number);
 	return e.X_add_number & 0xffff;
     }
     return e.X_add_number;
@@ -770,6 +767,7 @@ check_spl_reg (unsigned * reg)
 
 /* Tell how to relocate the result of the expression. */
 
+__attribute__((unused))
 static enum bfd_reloc_code_real
 get_relocation_type (expressionS* e, struct op_code_struct *op)
 {
@@ -845,6 +843,7 @@ void md_assemble(char * str)
     isize = 4;
     reg_index = 0;
     output = frag_more(isize);
+    frag_now->fr_opcode = opcode->name;
 
     /* Read the arguments. */
     for (arg_index = 0; OP_BREAD5(arg_index, opcode->arg_type) != ARG_TYPE_INV && arg_index < ARG_MAX; arg_index++) {
@@ -873,15 +872,14 @@ void md_assemble(char * str)
 		as_fatal (_("Error in statement syntax"));
 
 	    if (exp.X_op != O_constant)
-		fix_new_exp (frag_now,
-			     output - frag_now->fr_literal + offset_of_fix,
-			     fix_size,
-			     &exp,
-			     opcode->inst_offset_type,
-			     get_relocation_type(&exp, opcode));
+	    	fix_new_exp (frag_now,
+	    		     output - frag_now->fr_literal + offset_of_fix,
+	    		     fix_size,
+	    		     &exp,
+	    		     opcode->inst_offset_type,
+	    		     get_relocation_type(&exp, opcode));
 
 	    argument = imm_value(exp);
-	    fdd("Evaluated imm as: 0x%08x", argument);
 	} else {
 	    argument = 0;
 	}
@@ -1084,12 +1082,12 @@ md_convert_frag (bfd * abfd ATTRIBUTE_UNUSED,
     fragP->fr_var = 0;
 }
 
-static void swap(char* c1, char* c2)
-{
-    char tmp = *c1;
-    *c1 = *c2;
-    *c2 = tmp;
-}
+/* static void swap(char* c1, char* c2) */
+/* { */
+/*     char tmp = *c1; */
+/*     *c1 = *c2; */
+/*     *c2 = tmp; */
+/* } */
 
 /* Applies the desired value to the specified location.
    Also sets up addends for 'rela' type relocations. This is called for fixes */
@@ -1099,15 +1097,12 @@ md_apply_fix (fixS *   fixP,
 	      segT     segment)
 {
     char *       buf  = fixP->fx_where + fixP->fx_frag->fr_literal;
+    char *buf0, *buf1, *buf2;
     /* char *       file = fixP->fx_file ? fixP->fx_file : _("unknown"); */
-    const char * symname;
     /* Note: use offsetT because it is signed, valueT is unsigned.  */
     offsetT      val  = (offsetT) * valp;
-    int          i;
     /* struct op_code_struct * opcode1; */
     /* unsigned long inst1; */
-
-    symname = fixP->fx_addsy ? S_GET_NAME (fixP->fx_addsy) : _("<unknown>");
 
     /* fixP->fx_offset is supposed to be set up correctly for all
        symbol relocations.  */
@@ -1169,14 +1164,36 @@ md_apply_fix (fixS *   fixP,
 	fixP->fx_done = 1;
 
 
-    for (i=0 ; i < fixP->fx_size; i++) {
-	buf[i] |= (val >> (8*i)) & 0xff;
-    }
+    /* for (i=0 ; i < fixP->fx_size; i++) { */
+    /* 	buf[i] |= (val >> (8*i)) & 0xff; */
+    /* } */
 
-    /* buf[0] is thre MSB and wi put in there the LSB of val. */
-    if (target_big_endian)
-	for (i = 0; i< fixP->fx_size/2; i++)
-	    swap(buf+i, buf + fixP->fx_size - i - 1);
+    buf0 = buf; buf1 = buf+1; buf2 = buf+2;
+
+    /* val = 0x12345678; */
+    /* switch (fixP->fx_r_type) */
+    /* { */
+    /* case BFD_RELOC_NEMAWEAVER_32_HI: */
+    /* 	val >>= 16; */
+    /* 	/\* Fall through *\/ */
+    /* case BFD_RELOC_NEMAWEAVER_32_LO: */
+    /* 	*buf0 = (val >> 8) & 0xff; */
+    /* 	*buf1 = val & 0xff; */
+    /* 	break; */
+    /* case BFD_RELOC_NEMAWEAVER_26_JUMP: */
+    /* 	val >>= 2; 		/\* 32bits -> 30bits, now only use the 3 LSB *\/ */
+    /* 	*buf0 = (val >> 16) & 0xff; */
+    /* 	*buf1 = (val >> 8) & 0xff; */
+    /* 	*buf2 = val & 0xff; */
+    /* 	break; */
+    /* default: */
+    /* 	as_bad(_("Unrecognized reloc type.")); */
+    /* } */
+
+    /* /\* buf[0] is thre MSB and wi put in there the LSB of val. *\/ */
+    /* if (target_big_endian) */
+    /* 	for (i = 0; i< fixP->fx_size/2; i++) */
+    /* 	    swap(buf+i, buf + fixP->fx_size - i - 1); */
 
     if (fixP->fx_addsy == NULL)
     {
