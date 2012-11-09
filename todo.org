@@ -1,0 +1,96 @@
+* Tasks [26%]
+  An organization of the tasks to complete until binutils is up and
+  running. This can be used as a reference later.
+
+** [66%] Make a first version of the elf32-nemaweaver.c file
+   This manages tha way we interact with elf.
+
+*** DONE Write documatation
+    Document anything that may be useful in the future.
+
+*** DONE Write howtos for relocation
+    The howtos that microblazed uses are not by far what we
+    need. Moxie is close though I wrote them looking at those.
+
+*** DONE Write functions that need to be written
+    The changing in howtos leaves some functions like tha type lookup
+    one hanging. Fix those
+.
+*** DONE Create BFD relocation types
+    Bfd defines relocation types that interact with gas. Define one
+    for the 26bit relocation that jump needs. Also let the type lookup
+    function know.
+
+*** TODO Remove unneeded functions
+    Some functions are not needed (I think) I removed the definitions
+    that hook them up with the rest of bfd but not being sure if I
+    will need them later I left some definition in there.
+
+    Note: this may be done after compilation.
+
+*** TODO Create 16bit relocation
+    We may want to have 16bit variables for now we only support chopping down 32bit ones.
+
+** [9%] Make a working version of tc-nemaweaver.c
+  tc-nemaweaver.c is now a mess. Fix it. Use tc-moxie
+
+*** TODO Write documentation
+    There should at last be some documentation on these things.
+
+*** TODO Deal with pc relative immediates
+    Apparently relocators and fixers know how to deal with pc-relative
+    immediates automagically. This is connected with the ISA aswell.
+
+*** TODO md_assemble
+    Look at moxie and pj. They are quite simple and
+    straightforward. Mainly this needs proper relocation and fixup
+    creation and you should be good to go.
+
+*** TODO manage relocs
+    This is not only in md_assemble. Look around and document here
+    what you did.
+
+**** DONE Create relocs correctly
+     We create fixups in md_assemble that need to know how to be
+     relocated. I wrote a function for that.
+
+**** TODO Catch them and use them correctly
+     I am not entire sure what the workflow is for a fixup. It looks
+     like tc-nemawever needs to take care of some
+
+*** TODO apply fix
+    This merely applies a fix to a segment. What do relocations do
+    about this? Doesnt this make crating a fix given a relocation
+    redundant?
+
+**** TODO It looks like this does not respect the endianness.
+     Maybe fx_where is wrong. I may have set it in bits when it is in
+     bytes. val may be reverse. The problem is it is symmetric (0x0000000c)
+
+*** TODO gen reloc
+    Generate a machine dependent relocation. Looks like this should
+    never be actually used given that we already have apply fix.
+
+*** TODO cons fix new
+    This is called when we turn an expression into a fixup. The
+    dilemma here is that it seems this functionality is overalping
+    with the functionality that tc-pj has in md_assemble. I think this
+    is the right place to put logic into it but i am not quite sure
+    when this is called. Also there is the relocation stage.
+
+    I guess the main question is whn do we use fixups to set the
+    object code and when do we use relocs. Apparently first the fixups
+    are set and then there may be relocs that change those
+    areas. Relocations are the linker's job, fixups are the
+    assembler's job. But when are relocations created?
+
+*** TODO md convert frag
+    This is supposed to inform segments of their own sizes but in fact
+    it creates fixes, work this out and write it correctly.
+
+** TODO Compilation
+   Compile everything. Document correct arguments and setup if not
+   done already.
+
+** TODO Testing
+   Test with the emulator. Also document how you did it
