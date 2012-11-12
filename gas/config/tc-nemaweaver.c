@@ -784,11 +784,11 @@ get_relocation_type (expressionS* e, struct op_code_struct *op)
 	    /* Return 16bit relocation. */
 	    /* Not reached for now */
 	    assert(0);
-    } else if (IMM_SIZE(op) == 3) {
+    } else if (IMM_SIZE(op) == 4) {
 	return BFD_RELOC_NEMAWEAVER_26_JUMP;
     }
     /* Not reached */
-    assert (0);
+    as_fatal(_("No suitable lerlocation type found."));
 }
 
 void md_assemble(char * str)
@@ -873,7 +873,7 @@ void md_assemble(char * str)
 
 	    if (exp.X_op != O_constant)
 	    	fix_new_exp (frag_now,
-	    		     output - frag_now->fr_literal + offset_of_fix,
+			     output - frag_now->fr_literal + offset_of_fix, /* where the command in this frag begins + the offset that we want to use */
 	    		     fix_size,
 	    		     &exp,
 	    		     opcode->inst_offset_type,
@@ -893,30 +893,6 @@ void md_assemble(char * str)
     while (ISSPACE (* op_end))
 	op_end ++;
     if (*op_end) as_warn(_("Ignoring last part of the line '%s'."), op_end);
-
-    /* If we encountered a symbol we have already creaqted a variable frag. */
-    /* if (opcode->imm_arg > 0 && exp.X_op != O_constant) { */
-    /* 	/\* Fuck: this means the entire frag being created is to be fixed. *\/ */
-    /* 	output = frag_var (rs_machine_dependent, /\* fr_type *\/ */
-    /* 			   isize,		 /\* Grow the frag by */
-    /* 						  * this. The frag is */
-    /* 						  * probably 0 */
-    /* 						  * now. Note that */
-    /* 						  * frag->fr_fx will */
-    /* 						  * always be 0 */
-    /* 						  * because we */
-    /* 						  * allocate this much */
-    /* 						  * and then */
-    /* 						  * fr_fix=this-howMuchWeAlocated */
-    /* 						  * == 0 *\/ */
-    /* 			   IMM_SIZE(opcode),	 /\* fr_var *\/ */
-    /* 			   opcode->inst_offset_type, /\* fr_subtype *\/ */
-    /* 			   exp.X_add_symbol,	     /\* fr_symbol *\/ */
-    /* 			   exp.X_add_number,	     /\* fr_offset *\/ */
-    /* 			   opcode->name); /\* Local use *\/ */
-    /* } else { */
-    /* 	output = frag_more(isize); */
-    /* } */
 
     /* From opcode and read arguments create a bitfield. */
     output[0] = INST_BYTE0 (inst);
@@ -1008,7 +984,7 @@ md_atof (int type, char * litP, int * sizeP)
 
     return NULL;
 }
-
+
 const char * md_shortopts = "";
 
 struct option md_longopts[] =
@@ -1097,7 +1073,7 @@ md_apply_fix (fixS *   fixP,
 	      segT     segment)
 {
     char *       buf  = fixP->fx_where + fixP->fx_frag->fr_literal;
-    char *buf0, *buf1, *buf2;
+    char *buf0, *buf1, *buf2, *buf3;
     /* char *       file = fixP->fx_file ? fixP->fx_file : _("unknown"); */
     /* Note: use offsetT because it is signed, valueT is unsigned.  */
     offsetT      val  = (offsetT) * valp;
@@ -1163,14 +1139,9 @@ md_apply_fix (fixS *   fixP,
     else
 	fixP->fx_done = 1;
 
+    /* For endianness control(no control right now). */
+    buf0 = buf; buf1 = buf+1; buf2 = buf+2; buf3 = buf+3;
 
-    /* for (i=0 ; i < fixP->fx_size; i++) { */
-    /* 	buf[i] |= (val >> (8*i)) & 0xff; */
-    /* } */
-
-    buf0 = buf; buf1 = buf+1; buf2 = buf+2;
-
-    val = 0x12345678;
     switch (fixP->fx_r_type)
     {
     case BFD_RELOC_NEMAWEAVER_32_HI:
@@ -1181,19 +1152,19 @@ md_apply_fix (fixS *   fixP,
     	*buf1 = val & 0xff;
     	break;
     case BFD_RELOC_NEMAWEAVER_26_JUMP:
+	if (val >> 28) {
+	    as_fatal(_("Too long jump."));
+	}
+
     	val >>= 2; 		/* 32bits -> 30bits, now only use the 3 LSB */
-    	*buf0 = (val >> 16) & 0xff;
-    	*buf1 = (val >> 8) & 0xff;
-    	*buf2 = val & 0xff;
+    	*buf0 |= (val >> 24) & 0xff;
+    	*buf1 |= (val >> 16) & 0xff;
+    	*buf2 |= (val >> 8) & 0xff;
+	*buf3 |= val & 0xff;
     	break;
     default:
     	as_bad(_("Unrecognized reloc type."));
     }
-
-    /* buf[0] is thre MSB and wi put in there the LSB of val. */
-    if (target_big_endian)
-    	for (i = 0; i< fixP->fx_size/2; i++)
-    	    swap(buf+i, buf + fixP->fx_size - i - 1);
 
     if (fixP->fx_addsy == NULL)
     {

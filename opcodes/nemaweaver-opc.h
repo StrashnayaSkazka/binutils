@@ -118,9 +118,11 @@
 #define ARG_TYPE(i, op)  (OP_BREAD5(i, op->arg_type))
 #define ARG_UIMM(op) (ARG_TYPE(op->imm_arg, op) & ARG_TYPE_UIMM)
 
-/* Get immediate position in bytes. */
-#define IMM_SIZE(op) ((OP_BREAD5((op)->imm_arg, (op)->arg_mask))/8)
-#define IMM_POS(op) ((ARG_SHIFT((op)->imm_arg, (op)) + IMM_SIZE(op)) / 8)
+/* Get immediate position in bytes. Note that imm_size shouls be ceiled */
+#define DIV_CEIL(x,n) (((x)%(n)) ? ((x)/(n)+1) : ((x)/(n)))
+#define IMM_SIZE(op) DIV_CEIL((OP_BREAD5((op)->imm_arg, (op)->arg_mask)),8)
+#define IMM_BIT_POS(op) (ARG_SHIFT((op)->imm_arg, (op)) + IMM_SIZE(op))
+#define IMM_POS(op) (IMM_BIT_POS(op) / 8)
 
 struct op_code_struct
 {
