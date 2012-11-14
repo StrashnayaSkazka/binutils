@@ -89,6 +89,21 @@ static reloc_howto_type nemaweaver_elf_howto_raw[] =
 	   0x0000ffff,		/* Dest Mask.  */
 	   TRUE), 		/* PC relative offset?  */
 
+    /* A 32 bit absolute relocation.  */
+    HOWTO (R_NEMAWEAVER_32,		/* type */
+	   0,			/* rightshift */
+	   2,			/* size (0 = byte, 1 = short, 2 = long) */
+	   32,			/* bitsize */
+	   FALSE,			/* pc_relative */
+	   0,			/* bitpos */
+	   complain_overflow_bitfield, /* complain_on_overflow */
+	   bfd_elf_generic_reloc,	/* special_function */
+	   "R_NEMAWEAVER_32",		/* name */
+	   FALSE,			/* partial_inplace */
+	   0x00000000,		/* src_mask */
+	   0xffffffff,		/* dst_mask */
+	   FALSE),		/* pcrel_offset */
+
     /* The low half of a 32 bit relocation.  */
     HOWTO (R_NEMAWEAVER_32_LO,   /* Type.  */
 	   0,			/* Rightshift.  */
@@ -105,7 +120,7 @@ static reloc_howto_type nemaweaver_elf_howto_raw[] =
 	   FALSE), 		/* PC relative offset?  */
 
     /* The high half of a 32 bit relocation */
-        HOWTO (R_NEMAWEAVER_32_HI,   /* Type.  */
+    HOWTO (R_NEMAWEAVER_32_HI,   /* Type.  */
 	   16,			/* Rightshift.  */
 	   2,			/* Size (0 = byte, 1 = short, 2 = long).  */
 	   16,			/* Bitsize.  */
@@ -118,7 +133,6 @@ static reloc_howto_type nemaweaver_elf_howto_raw[] =
 	   0,			/* Source Mask.  */
 	   0x0000ffff,		/* Dest Mask.  */
 	   FALSE), 		/* PC relative offset?  */
-
 
     /* GNU extension to record C++ vtable hierarchy.  */
     HOWTO (R_NEMAWEAVER_GNU_VTINHERIT, /* Type.  */
@@ -173,7 +187,7 @@ nemaweaver_elf_howto_init (void)
 	nemaweaver_elf_howto_table [type] = & nemaweaver_elf_howto_raw [i];
     }
 }
-
+
 static reloc_howto_type *
 nemaweaver_elf_reloc_type_lookup (bfd * abfd ATTRIBUTE_UNUSED,
 				  bfd_reloc_code_real_type code)
@@ -196,6 +210,9 @@ nemaweaver_elf_reloc_type_lookup (bfd * abfd ATTRIBUTE_UNUSED,
 	break;
     case BFD_RELOC_NEMAWEAVER_32_LO:
 	nemaweaver_reloc = R_NEMAWEAVER_32_LO;
+	break;
+    case BFD_RELOC_32:
+	nemaweaver_reloc = R_NEMAWEAVER_32;
 	break;
     case BFD_RELOC_VTABLE_INHERIT:
 	nemaweaver_reloc = R_NEMAWEAVER_GNU_VTINHERIT;

@@ -606,7 +606,7 @@ parse_imm(char * s, expressionS * e, int min, int max)
     e->X_md = 0;
 
     for (it = s = nemaweaver_skip_lspaces(s); !IS_SPACE_OR_NUL(*it); it++) {
-	if (*it == ':') {
+	if (*it == '%') {
 	    if (s != it) e->X_md |= parse_imm_flags(s);
 	    s = it+1;
 	}
@@ -767,7 +767,6 @@ check_spl_reg (unsigned * reg)
 
 /* Tell how to relocate the result of the expression. */
 
-__attribute__((unused))
 static enum bfd_reloc_code_real
 get_relocation_type (expressionS* e, struct op_code_struct *op)
 {
@@ -783,12 +782,12 @@ get_relocation_type (expressionS* e, struct op_code_struct *op)
 	else
 	    /* Return 16bit relocation. */
 	    /* Not reached for now */
-	    assert(0);
+	    as_bad(_("No 16bit relocations for symbols in nemaweaver yet. Come back later."));
     } else if (IMM_SIZE(op) == 4) {
 	return BFD_RELOC_NEMAWEAVER_26_JUMP;
     }
     /* Not reached */
-    as_fatal(_("No suitable lerlocation type found."));
+    as_fatal(_("No suitable relocation type found."));
 }
 
 void md_assemble(char * str)
@@ -838,12 +837,16 @@ void md_assemble(char * str)
 	return;
     }
 
+
     /* Unmasked bit sequence. */
     inst = opcode->bit_sequence;
     isize = 4;
     reg_index = 0;
     output = frag_more(isize);
     frag_now->fr_opcode = opcode->name;
+    char* debugger = str;
+    fdd("We are looking at: %s", debugger);
+
 
     /* Read the arguments. */
     for (arg_index = 0; OP_BREAD5(arg_index, opcode->arg_type) != ARG_TYPE_INV && arg_index < ARG_MAX; arg_index++) {
@@ -899,7 +902,6 @@ void md_assemble(char * str)
     output[1] = INST_BYTE1 (inst);
     output[2] = INST_BYTE2 (inst);
     output[3] = INST_BYTE3 (inst);
-
 
 #ifdef OBJ_ELF
     dwarf2_emit_insn (4);
@@ -1148,8 +1150,8 @@ md_apply_fix (fixS *   fixP,
     	val >>= 16;
     	/* Fall through */
     case BFD_RELOC_NEMAWEAVER_32_LO:
-    	*buf0 = (val >> 8) & 0xff;
-    	*buf1 = val & 0xff;
+    	*buf2 = (val >> 8) & 0xff;
+    	*buf3 = val & 0xff;
     	break;
     case BFD_RELOC_NEMAWEAVER_26_JUMP:
 	if (val >> 28) {
@@ -1157,7 +1159,11 @@ md_apply_fix (fixS *   fixP,
 	}
 
     	val >>= 2; 		/* 32bits -> 30bits, now only use the 3 LSB */
-    	*buf0 |= (val >> 24) & 0xff;
+    	/* Fall through. */
+    case BFD_RELOC_32:
+	/* We assume that val plays well with buffer (aka they have 0s
+	 * at the areas they are not supposed to write.) */
+	*buf0 |= (val >> 24) & 0xff;
     	*buf1 |= (val >> 16) & 0xff;
     	*buf2 |= (val >> 8) & 0xff;
 	*buf3 |= val & 0xff;
@@ -1394,8 +1400,8 @@ tc_gen_reloc (asection *seg ATTRIBUTE_UNUSED, fixS *fixp)
     if (reloc->howto == (reloc_howto_type *) NULL)
     {
 	as_bad_where (fixp->fx_file, fixp->fx_line,
-		      _("reloc %d not supported by object file format"),
-		      (int) fixp->fx_r_type);
+		      _("reloc %d not supported by object file format. (Could not find a good howto. Symbol name is: %s)"),
+		      (int) fixp->fx_r_type, fixp->fx_addsy->bsym->name);
 	return NULL;
     }
     reloc->addend = fixp->fx_offset;
