@@ -120,7 +120,8 @@
 
 /* Get immediate position in bytes. Note that imm_size shouls be ceiled */
 #define DIV_CEIL(x,n) (((x)%(n)) ? ((x)/(n)+1) : ((x)/(n)))
-#define IMM_SIZE(op) DIV_CEIL((OP_BREAD5((op)->imm_arg, (op)->arg_mask)),8)
+#define IMM_SIZE_BITS(op) (OP_BREAD5((op)->imm_arg, (op)->arg_mask))
+#define IMM_SIZE(op) DIV_CEIL(IMM_SIZE_BITS(op),8)
 #define IMM_BIT_POS(op) (ARG_SHIFT((op)->imm_arg, (op)) + IMM_SIZE(op))
 #define IMM_POS(op) (IMM_BIT_POS(op) / 8)
 
@@ -247,7 +248,7 @@ char pvr_register_prefix[]     = "rpvr";
 
 /* #defines for valid immediate range.  */
 #define MIN_IMM(op)  (0)
-#define MAX_IMM(op)  ((1<<(IMM_SIZE(op)*8+1)) - 1)
+#define MAX_IMM(op)  ((1<<(IMM_SIZE_BITS(op)+1)) - 1)
 
 #define MIN_IMM15 ((int) 0x0000)
 #define MAX_IMM15 ((int) 0x7fff)

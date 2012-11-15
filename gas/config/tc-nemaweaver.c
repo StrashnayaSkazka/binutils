@@ -622,8 +622,9 @@ parse_imm(char * s, expressionS * e)
 }
 
 static unsigned int
-imm_value(expressionS* e, int min, int max)
+imm_value(const expressionS* e, enum bfd_reloc_code_real rel, int min, int max)
 {
+    unsigned ret = 0;
     if (e->X_md & IMM_HIGHER16 && e->X_md & IMM_LOWER16)
 	as_fatal(_("you can either get the higher16 OR lower16."));
     if (e->X_md & IMM_HIGHER16) {
@@ -632,16 +633,19 @@ imm_value(expressionS* e, int min, int max)
 	return e->X_add_number & 0xffff;
     }
 
-    /* BUG: in jumps you will have to shift the immediates to see of they can fit */
+    if (rel == BFD_RELOC_NEMAWEAVER_26_JUMP) {
+	ret = (e->X_add_number >> 2);
+    }
+
     if ((e->X_op != O_constant && e->X_op != O_symbol))
 	as_fatal (_("operand %d is neither a constant nor a symbol. Its X_op is %d"),
-		  (int) e->X_add_number, (int)e->X_op);
-    else if ((e->X_op == O_constant) && ((int) e->X_add_number < min
-					 || (int) e->X_add_number > max))
+		  (int) ret, (int)e->X_op);
+    else if ((e->X_op == O_constant) && ((int) ret < min
+					 || (int) ret > max))
 	as_fatal (_("operand must be absolute in range 0x%x..0x%x, not 0x%x"),
-		  min, max, (int) e->X_add_number);
+		  min, max, ret);
 
-    return e->X_add_number;
+    return ret;
 }
 
 static char *
@@ -776,7 +780,10 @@ get_relocation_type (expressionS* e, struct op_code_struct *op)
 	return BFD_RELOC_NONE;
     }
 
-    if (IMM_SIZE(op) == 2) {
+    if (IMM_SIZE_BITS(op) == 5) {
+	/* We should never need to relocate this. */
+	return BFD_RELOC_NONE;
+    } else if (IMM_SIZE(op) == 2) {
 	if (e->X_md & IMM_LOWER16)
 	    return BFD_RELOC_NEMAWEAVER_32_LO;
 	else if (e->X_md & IMM_HIGHER16)
@@ -881,7 +888,8 @@ void md_assemble(char * str)
 	    		     opcode->inst_offset_type,
 	    		     get_relocation_type(&exp, opcode));
 
-	    argument = imm_value(&exp, MIN_IMM(opcode), MAX_IMM(opcode));
+	    /* ATTENTION: max imm should always ceil in order to pass jumps (right shifted 26bits). */
+	    argument = imm_value(&exp, get_relocation_type(&exp, opcode), MIN_IMM(opcode), MAX_IMM(opcode));
 	} else {
 	    argument = 0;
 	}
