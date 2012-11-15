@@ -600,7 +600,7 @@ static char* nemaweaver_skip_lspaces(char* s)
 }
 
 static char *
-parse_imm(char * s, expressionS * e, int min, int max)
+parse_imm(char * s, expressionS * e)
 {
     char* it;
     e->X_md = 0;
@@ -618,28 +618,30 @@ parse_imm(char * s, expressionS * e, int min, int max)
 	e->X_add_symbol->bsym->udata.i = e->X_md;
     }
 
-    if ((e->X_op != O_constant && e->X_op != O_symbol))
-	as_fatal (_("operand must be absolute in range %d..%d, not %d"),
-		  min, max, (int) e->X_add_number);
-    else if ((e->X_op == O_constant) && ((int) e->X_add_number < min
-					 || (int) e->X_add_number > max))
-	as_fatal (_("operand must be absolute in range %d..%d, not %d"),
-		  min, max, (int) e->X_add_number);
-
     return s;
 }
 
 static unsigned int
-imm_value(expressionS e)
+imm_value(expressionS* e, int min, int max)
 {
-    if (e.X_md & IMM_HIGHER16 && e.X_md & IMM_LOWER16)
+    if (e->X_md & IMM_HIGHER16 && e->X_md & IMM_LOWER16)
 	as_fatal(_("you can either get the higher16 OR lower16."));
-    if (e.X_md & IMM_HIGHER16) {
-	return e.X_add_number >> 16;
-    } else if (e.X_md & IMM_LOWER16) {
-	return e.X_add_number & 0xffff;
+    if (e->X_md & IMM_HIGHER16) {
+	return e->X_add_number >> 16;
+    } else if (e->X_md & IMM_LOWER16) {
+	return e->X_add_number & 0xffff;
     }
-    return e.X_add_number;
+
+    /* BUG: in jumps you will have to shift the immediates to see of they can fit */
+    if ((e->X_op != O_constant && e->X_op != O_symbol))
+	as_fatal (_("operand %d is neither a constant nor a symbol. Its X_op is %d"),
+		  (int) e->X_add_number, (int)e->X_op);
+    else if ((e->X_op == O_constant) && ((int) e->X_add_number < min
+					 || (int) e->X_add_number > max))
+	as_fatal (_("operand must be absolute in range 0x%x..0x%x, not 0x%x"),
+		  min, max, (int) e->X_add_number);
+
+    return e->X_add_number;
 }
 
 static char *
@@ -782,7 +784,7 @@ get_relocation_type (expressionS* e, struct op_code_struct *op)
 	else
 	    /* Return 16bit relocation. */
 	    /* Not reached for now */
-	    as_bad(_("No 16bit relocations for symbols in nemaweaver yet. Come back later."));
+	    return BFD_RELOC_16;
     } else if (IMM_SIZE(op) == 4) {
 	return BFD_RELOC_NEMAWEAVER_26_JUMP;
     }
@@ -844,9 +846,6 @@ void md_assemble(char * str)
     reg_index = 0;
     output = frag_more(isize);
     frag_now->fr_opcode = opcode->name;
-    char* debugger = str;
-    fdd("We are looking at: %s", debugger);
-
 
     /* Read the arguments. */
     for (arg_index = 0; OP_BREAD5(arg_index, opcode->arg_type) != ARG_TYPE_INV && arg_index < ARG_MAX; arg_index++) {
@@ -870,7 +869,7 @@ void md_assemble(char * str)
 
  	    /* The argument is an imm value */
 	    if (strcmp (op_end, ""))
-		op_end = parse_imm (op_end, &exp, MIN_IMM, MAX_IMM);
+		op_end = parse_imm (op_end, &exp);
 	    else
 		as_fatal (_("Error in statement syntax"));
 
@@ -882,7 +881,7 @@ void md_assemble(char * str)
 	    		     opcode->inst_offset_type,
 	    		     get_relocation_type(&exp, opcode));
 
-	    argument = imm_value(exp);
+	    argument = imm_value(&exp, MIN_IMM(opcode), MAX_IMM(opcode));
 	} else {
 	    argument = 0;
 	}
@@ -1141,7 +1140,9 @@ md_apply_fix (fixS *   fixP,
     else
 	fixP->fx_done = 1;
 
-    /* For endianness control(no control right now). */
+    /* For endianness control(no control right now). Make sure buf0
+     * points at the MSB and buf3 points to the least significant
+     * byte. */
     buf0 = buf; buf1 = buf+1; buf2 = buf+2; buf3 = buf+3;
 
     switch (fixP->fx_r_type)
@@ -1182,6 +1183,7 @@ md_apply_fix (fixS *   fixP,
     return;
 }
 
+/* Never run. */
 void
 md_operand (expressionS * expressionP)
 {
@@ -1194,8 +1196,10 @@ md_operand (expressionS * expressionP)
 }
 
 
-/* Called just before address relaxation, return the length
-   by which a fragment must grow to reach it's destination. This should always be 0.  */
+/* Doesnt seem to get called. */
+/* called just before address relaxation, return the length by which a
+   fragment must grow to reach it's destination. This should always be
+   0. Note that this makes some initializations in the frag aswell. */
 
 int
 md_estimate_size_before_relax (fragS * fragP ATTRIBUTE_UNUSED,
@@ -1353,6 +1357,8 @@ md_section_align (segT segment ATTRIBUTE_UNUSED, valueT size)
 }
 
 
+/* We do not handle pc-relative imms inteligently so this doesnt get
+ * called. */
 /* The location from which a PC relative jump should be calculated,
    given a PC relative reloc.  */
 

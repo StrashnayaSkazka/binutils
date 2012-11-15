@@ -246,8 +246,8 @@ char pvr_register_prefix[]     = "rpvr";
 #define arg_prefix(type) ((type) & ARG_TYPE_REG ? register_prefix: "")
 
 /* #defines for valid immediate range.  */
-#define MIN_IMM  ((int) 0x80000000)
-#define MAX_IMM  ((int) 0x7fffffff)
+#define MIN_IMM(op)  (0)
+#define MAX_IMM(op)  ((1<<(IMM_SIZE(op)*8+1)) - 1)
 
 #define MIN_IMM15 ((int) 0x0000)
 #define MAX_IMM15 ((int) 0x7fff)

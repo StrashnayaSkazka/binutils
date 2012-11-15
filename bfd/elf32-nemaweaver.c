@@ -214,6 +214,9 @@ nemaweaver_elf_reloc_type_lookup (bfd * abfd ATTRIBUTE_UNUSED,
     case BFD_RELOC_32:
 	nemaweaver_reloc = R_NEMAWEAVER_32;
 	break;
+    case BFD_RELOC_16:
+	nemaweaver_reloc = R_NEMAWEAVER_32_LO; /* Treat 16bit stuff as lower parts of 32bits. */
+	break;
     case BFD_RELOC_VTABLE_INHERIT:
 	nemaweaver_reloc = R_NEMAWEAVER_GNU_VTINHERIT;
 	break;
