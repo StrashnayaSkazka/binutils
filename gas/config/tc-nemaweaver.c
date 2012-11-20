@@ -433,113 +433,46 @@ md_begin (void)
 	hash_insert (opcode_hash_control, opcode->name, (char *) opcode);
 }
 
-/* Try to parse a reg name.  */
-
-static char *
-parse_reg (char * s, unsigned * reg)
+struct spl_regiser
 {
-    unsigned tmpreg = 0;
+    char name[20];
+    unsigned value;
+} special_registers[] = {
+    {"zero", 0},
+    {"", 0}
+};
+
+
+/* Parse a reg name */
+static char* parse_reg (char* s, unsigned* reg)
+{
+    struct spl_regiser *spl;
 
     /* Strip leading whitespace.  */
     while (ISSPACE (* s))
 	++ s;
 
-    if (strncasecmp (s,  "rpc", 3) == 0)  { *reg = REG_PC;   return s + 3;    }
-    else if (strncasecmp (s, "rmsr", 4) == 0)  { *reg = REG_MSR;  return s + 4;    }
-    else if (strncasecmp (s, "rear", 4) == 0)  { *reg = REG_EAR;  return s + 4;    }
-    else if (strncasecmp (s, "resr", 4) == 0)  { *reg = REG_ESR;  return s + 4;    }
-    else if (strncasecmp (s, "rfsr", 4) == 0)  { *reg = REG_FSR;  return s + 4;    }
-    else if (strncasecmp (s, "rbtr", 4) == 0)  { *reg = REG_BTR;  return s + 4;    }
-    else if (strncasecmp (s, "redr", 4) == 0)  { *reg = REG_EDR;  return s + 4;    }
-    /* MMU registers start.  */
-    else if (strncasecmp (s, "rpid", 4) == 0)  { *reg = REG_PID;   return s + 4;   }
-    else if (strncasecmp (s, "rzpr", 4) == 0)  { *reg = REG_ZPR;   return s + 4;   }
-    else if (strncasecmp (s, "rtlbx", 5) == 0) { *reg = REG_TLBX;  return s + 5;   }
-    else if (strncasecmp (s, "rtlblo", 6) == 0){ *reg = REG_TLBLO; return s + 6;   }
-    else if (strncasecmp (s, "rtlbhi", 6) == 0){ *reg = REG_TLBHI; return s + 6;   }
-    else if (strncasecmp (s, "rtlbsx", 6) == 0){ *reg = REG_TLBSX; return s + 6;   }
-    /* MMU registers end.  */
-    else if (strncasecmp (s, "rpvr", 4) == 0)  {
-	if (ISDIGIT (s[4]) && ISDIGIT (s[5]))
-        {
-	    tmpreg = (s[4]-'0')*10 + s[5] - '0';
-	    s += 6;
-        }
-
-	else if (ISDIGIT (s[4]))
-        {
-	    tmpreg = s[4] - '0';
-	    s += 5;
-        }
-	else
-	    as_bad (_("register expected, but saw '%.6s'"), s);
-	if ((int) tmpreg >= MIN_PVR_REGNUM && tmpreg <= MAX_PVR_REGNUM)
-	    *reg = REG_PVR + tmpreg;
-	else
-        {
-	    as_bad (_("Invalid register number at '%.6s'"), s);
-	    *reg = REG_PVR;
-        }
-	return s;
+    /* First check for special registers */
+    for (spl=special_registers; spl->name[0] != 0; spl++) {
+	if (strcasecmp(spl->name, s) == 0 ) {
+	    *reg = spl->value;
+	    return s + strlen(spl->name);
+	}
     }
-    else if (strncasecmp (s, "rsp", 3) == 0)
-    {
-	*reg = REG_SP;
-	return s + 3;
-    }
-    else if (strncasecmp (s, "rfsl", 4) == 0)
-    {
-	if (ISDIGIT (s[4]) && ISDIGIT (s[5]))
-        {
-	    tmpreg = (s[4] - '0') * 10 + s[5] - '0';
-	    s += 6;
-        }
-	else if (ISDIGIT (s[4]))
-        {
-	    tmpreg = s[4] - '0';
-	    s += 5;
-        }
-	else
-	    as_bad (_("register expected, but saw '%.6s'"), s);
 
-	if ((int) tmpreg >= MIN_REGNUM && tmpreg <= MAX_REGNUM)
-	    *reg = tmpreg;
-	else
-	{
-	    as_bad (_("Invalid register number at '%.6s'"), s);
-	    *reg = 0;
+    *reg = 0;
+    /* Look for normal registers. */
+    if ((strchr(register_prefix, *s) || strchr(F_register_prefix, *s)) &&
+	ISDIGIT(*(++s)) ) {
+
+	while (ISDIGIT(*s)) {
+	    *reg *= 10;
+	    *reg += *s-'0';
+	    s++;
 	}
 	return s;
     }
-    else
-    {
-	if ( (TOLOWER (s[0]) == 'r') || (TOLOWER (s[0]) == 'f') )
-        {
-	    if (ISDIGIT (s[1]) && ISDIGIT (s[2]))
-            {
-		tmpreg = (s[1] - '0') * 10 + s[2] - '0';
-		s += 3;
-            }
-	    else if (ISDIGIT (s[1]))
-            {
-		tmpreg = s[1] - '0';
-		s += 2;
-            }
-	    else
-		as_bad (_("register expected, but saw '%.6s'"), s);
-
-	    if ((int)tmpreg >= MIN_REGNUM && tmpreg <= MAX_REGNUM)
-		*reg = tmpreg;
-	    else
-	    {
-		as_bad (_("Invalid register number at '%.6s'"), s);
-		*reg = 0;
-	    }
-	    return s;
-        }
-    }
-    as_bad (_("register expected, but saw '%.6s'"), s);
-    *reg = 0;
+    as_bad (_("Expected register but instead got %s.6"), s);
     return s;
 }
 

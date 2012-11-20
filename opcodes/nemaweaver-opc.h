@@ -224,7 +224,7 @@ struct op_code_struct
 
 /* Prefix for register names.  */
 char register_prefix[]         = "r";
-char F_register_prefix[]       = "f";
+char F_register_prefix[]       = "fv";
 
 char special_register_prefix[] = "spr";
 char fsl_register_prefix[]     = "rfsl";
