@@ -50,8 +50,8 @@ static bfd_boolean check_spl_reg (unsigned *);
 #define	INST_BYTE3(x)  (target_big_endian ? ( (x)        & 0xFF) : (((x) >> 24) & 0xFF))
 
 /* Options from the command line. */
-#define OPT_LITTLE_ENDIAN 1
-#define OPT_BIG_ENDIAN 2
+#define OPTION_LITTLE_ENDIAN OPTION_MD_BASE+1
+#define OPTION_BIG_ENDIAN OPTION_MD_BASE+2
 
 /* This array holds the chars that always start a comment.  If the
    pre-processor is disabled, these aren't very useful.  */
@@ -629,7 +629,7 @@ imm_value(const expressionS* e, enum bfd_reloc_code_real rel, int min, int max)
 	as_fatal(_("you can either get the higher16 OR lower16."));
     if (e->X_md & IMM_HIGHER16) {
 	return e->X_add_number >> 16;
-    } else if (e->X_md & IMM_LOWER16) {
+    } else if (e->X_md & IMM_LOWER16 || rel == BFD_RELOC_16) {
 	return e->X_add_number & 0xffff;
     }
 
@@ -642,8 +642,8 @@ imm_value(const expressionS* e, enum bfd_reloc_code_real rel, int min, int max)
 		  (int) ret, (int)e->X_op);
     else if ((e->X_op == O_constant) && ((int) ret < min
 					 || (int) ret > max))
-	as_fatal (_("operand must be absolute in range 0x%x..0x%x, not 0x%x"),
-		  min, max, ret);
+	as_fatal (_("operand must be absolute in range 0x%x..0x%x, not 0x%x (original value: 0x%x)"),
+		  min, max, ret, (unsigned) e->X_add_number);
 
     return ret;
 }
@@ -998,9 +998,9 @@ const char * md_shortopts = "";
 
 struct option md_longopts[] =
 {
-    {"EB", no_argument, NULL, OPT_BIG_ENDIAN},
-    {"EL", no_argument, NULL, OPT_LITTLE_ENDIAN},
-    { NULL,          no_argument, NULL, 0}
+    {"EB", no_argument, NULL, OPTION_BIG_ENDIAN},
+    {"EL", no_argument, NULL, OPTION_LITTLE_ENDIAN},
+    { NULL, no_argument, NULL, 0}
 };
 
 size_t md_longopts_size = sizeof (md_longopts);
@@ -1148,10 +1148,13 @@ md_apply_fix (fixS *   fixP,
     else
 	fixP->fx_done = 1;
 
-    /* For endianness control(no control right now). Make sure buf0
-     * points at the MSB and buf3 points to the least significant
-     * byte. */
-    buf0 = buf; buf1 = buf+1; buf2 = buf+2; buf3 = buf+3;
+    /* For endianness control. Make sure buf0 points at the MSB and
+     * buf3 points to the least significant byte. */
+    if (target_big_endian) {
+	buf0 = buf; buf1 = buf+1; buf2 = buf+2; buf3 = buf+3;
+    } else {
+	buf0 = buf+3; buf1 = buf+2; buf2 = buf+1; buf3 = buf;
+    }
 
     switch (fixP->fx_r_type)
     {
@@ -1401,35 +1404,40 @@ md_pcrel_from_section (fixS * fixp, segT sec ATTRIBUTE_UNUSED)
 /* Generate a reloc for a fixup.  */
 
 arelent *
-tc_gen_reloc (asection *seg ATTRIBUTE_UNUSED, fixS *fixp)
+tc_gen_reloc (asection *seg ATTRIBUTE_UNUSED, fixS *fixP)
 {
     arelent *reloc;
 
     reloc = (arelent *) xmalloc (sizeof (arelent));
 
     reloc->sym_ptr_ptr = (asymbol **) xmalloc (sizeof (asymbol *));
-    *reloc->sym_ptr_ptr = symbol_get_bfdsym (fixp->fx_addsy);
-    reloc->address = fixp->fx_frag->fr_address + fixp->fx_where;
-    reloc->howto = bfd_reloc_type_lookup (stdoutput, fixp->fx_r_type);
+    *reloc->sym_ptr_ptr = symbol_get_bfdsym (fixP->fx_addsy);
+    reloc->address = fixP->fx_frag->fr_address + fixP->fx_where;
+    reloc->howto = bfd_reloc_type_lookup (stdoutput, fixP->fx_r_type);
     if (reloc->howto == (reloc_howto_type *) NULL)
     {
-	as_bad_where (fixp->fx_file, fixp->fx_line,
+	as_bad_where (fixP->fx_file, fixP->fx_line,
 		      _("reloc %d not supported by object file format. (Could not find a good howto. Symbol name is: %s)"),
-		      (int) fixp->fx_r_type, fixp->fx_addsy->bsym->name);
+		      (int) fixP->fx_r_type, fixP->fx_addsy->bsym->name);
 	return NULL;
     }
-    reloc->addend = fixp->fx_offset;
+    reloc->addend = fixP->fx_offset;
 
     return reloc;
 }
 
+/* Return 0 on failure to find the right option. These options are
+ * defined above in md_longopt */
 int
 md_parse_option (int c, char * arg ATTRIBUTE_UNUSED)
 {
     switch (c)
     {
-    case OPT_LITTLE_ENDIAN:
+    case OPTION_LITTLE_ENDIAN:
 	target_big_endian = 0;
+	break;
+    case OPTION_BIG_ENDIAN:
+	target_big_endian = 1;
 	break;
     default:
 	return 0;

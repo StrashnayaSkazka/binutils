@@ -875,6 +875,7 @@ case "${targ}" in
 
   nemaweaver*-*)
     targ_defvec=bfd_elf32_nemaweaver_vec
+    targ_selvecs=bfd_elf32_nemaweaver_little_vec
     ;;
 
   mips*-big-*)

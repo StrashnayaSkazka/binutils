@@ -71,7 +71,7 @@ static reloc_howto_type nemaweaver_elf_howto_raw[] =
 	   FALSE,		/* Partial Inplace.  */
 	   0,			/* Source Mask.  */
 	   0x03ffffff,		/* Dest Mask.  */
-	   TRUE), 		/* PC relative offset?  */
+	   FALSE), 		/* PC relative offset?  */
 
 
     /* The low half of a PCREL 32 bit relocation.  */
@@ -586,6 +586,7 @@ nemaweaver_elf_relocate_section (bfd *output_bfd,
 					 unresolved_reloc, warned);
 		sym_name = h->root.root.string;
 	    }
+
 
 	    /* Sanity check the address.  */
 	    if (offset > bfd_get_section_limit (input_bfd, input_section))
@@ -1673,6 +1674,9 @@ nemaweaver_elf_add_symbol_hook (bfd *abfd,
 
 #define TARGET_BIG_SYM          bfd_elf32_nemaweaver_vec
 #define TARGET_BIG_NAME		"elf32-nemaweaver"
+
+#define TARGET_LITTLE_SYM          bfd_elf32_nemaweaver_little_vec
+#define TARGET_LITTLE_NAME	   "elf32-nemaweaver-little"
 
 #define ELF_ARCH		bfd_arch_nemaweaver
 #define ELF_TARGET_ID		NEMAWEAVER_ELF_DATA

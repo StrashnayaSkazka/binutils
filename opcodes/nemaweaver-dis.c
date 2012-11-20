@@ -1,4 +1,4 @@
-/* Disassemble Xilinx nemaweaver instructions.
+/* Disassemble Think Silicon nemaweaver instructions.
 
    Copyright 2009 Free Software Foundation, Inc.
 
@@ -36,8 +36,16 @@ static char *
 get_field (unsigned long instr, unsigned long mask, unsigned short low, unsigned type)
 {
     char tmpstr[25];
+    int x = (int)((instr >> low) & mask);
 
-    sprintf (tmpstr, "%s%d", arg_prefix(type), (int)((instr >> low) & mask));
+    if (mask+1 == 1<<26) {
+	x <<= 2;
+    }
+
+    if (arg_prefix(type)[0])
+	sprintf (tmpstr, "%s%d", arg_prefix(type), x);
+    else
+	sprintf (tmpstr, "0x%x", (unsigned)x);
 
     return (strdup (tmpstr));
 }
