@@ -718,9 +718,9 @@ get_relocation_type (expressionS* e, struct op_code_struct *op)
 	return BFD_RELOC_NONE;
     } else if (IMM_SIZE(op) == 2) {
 	if (e->X_md & IMM_LOWER16)
-	    return BFD_RELOC_NEMAWEAVER_32_LO;
+	    return op->inst_offset_type ? BFD_RELOC_NEMAWEAVER_32_LO_PCREL : BFD_RELOC_NEMAWEAVER_32_LO;
 	else if (e->X_md & IMM_HIGHER16)
-	    return BFD_RELOC_NEMAWEAVER_32_HI;
+	    return op->inst_offset_type ? BFD_RELOC_NEMAWEAVER_32_HI_PCREL : BFD_RELOC_NEMAWEAVER_32_HI;
 	else
 	    /* Return 16bit relocation. */
 	    /* Not reached for now */

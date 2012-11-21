@@ -73,6 +73,20 @@ static reloc_howto_type nemaweaver_elf_howto_raw[] =
 	   0x03ffffff,		/* Dest Mask.  */
 	   FALSE), 		/* PC relative offset?  */
 
+    /* The high half of a PCREL 32 bit relocation.  */
+    HOWTO (R_NEMAWEAVER_32_PCREL_HI,   	/* Type.  */
+	   16,			/* Rightshift.  */
+	   2,			/* Size (0 = byte, 1 = short, 2 = long).  */
+	   16,			/* Bitsize.  */
+	   TRUE,			/* PC_relative.  */
+	   0,			/* Bitpos.  */
+	   complain_overflow_signed, /* Complain on overflow.  */
+	   bfd_elf_generic_reloc,	/* Special Function.  */
+	   "R_NEMAWEAVER_32_PCREL_HI", 	/* Name.  */
+	   FALSE,		/* Partial Inplace.  */
+	   0,			/* Source Mask.  */
+	   0x0000ffff,		/* Dest Mask.  */
+	   TRUE), 		/* PC relative offset?  */
 
     /* The low half of a PCREL 32 bit relocation.  */
     HOWTO (R_NEMAWEAVER_32_PCREL_LO,   	/* Type.  */
@@ -198,6 +212,9 @@ nemaweaver_elf_reloc_type_lookup (bfd * abfd ATTRIBUTE_UNUSED,
     {
     case BFD_RELOC_NONE:
 	nemaweaver_reloc = R_NEMAWEAVER_NONE;
+	break;
+    case BFD_RELOC_NEMAWEAVER_32_HI_PCREL:
+	nemaweaver_reloc = R_NEMAWEAVER_32_PCREL_HI;
 	break;
     case BFD_RELOC_NEMAWEAVER_32_LO_PCREL:
 	nemaweaver_reloc = R_NEMAWEAVER_32_PCREL_LO;
