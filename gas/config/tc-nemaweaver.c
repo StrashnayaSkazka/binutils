@@ -455,7 +455,7 @@ static char* parse_reg (char* s, unsigned* reg, unsigned rtype)
 
     /* First check for special registers */
     for (spl=special_registers; spl->name[0] != 0; spl++) {
-	if (strcasecmp(spl->name, s) == 0 ) {
+	if (strncasecmp(spl->name, s, strlen(spl->name)) == 0) {
 	    *reg = spl->value;
 	    return s + strlen(spl->name);
 	}
