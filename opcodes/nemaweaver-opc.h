@@ -85,10 +85,10 @@
 #define ARG_TYPE_UIMM    0x01
 
 /* Register types */
-#define ARG_TYPE_REG       0x08
-#define ARG_TYPE_REG_FLOAT 0x04
-#define ARG_TYPE_REG_SPL   0x02
-#define ARG_TYPE_INV       0x00
+#define ARG_TYPE_REG        0x08
+#define ARG_TYPE_REG_FLOAT  0x04
+#define ARG_TYPE_REG_VECTOR 0x02
+#define ARG_TYPE_INV        0x00
 
 /* The maximum registers an opcode can have as args. */
 #define ARG_MAX_REGS 5
@@ -112,12 +112,13 @@
 #define IMM_POS(op) (IMM_BIT_POS(op) / 8)
 
 #define FLOAT_REG(t) (((t) & ARG_TYPE_REG_FLOAT) && 1)
+#define VECTOR_REG(t) (((t) & ARG_TYPE_REG_VECTOR) && 1)
 
 struct op_code_struct
 {
     char * name;
 
-//  short inst_type;            /* Registers and immediate values involved.  */
+    //  short inst_type;            /* Registers and immediate values involved.  */
     unsigned long arg_mask;	/* A series of 5bit numbers of the
 				 * length of each mask, this also
 				 * tells us how many args exist */
@@ -135,7 +136,7 @@ struct op_code_struct
     /* More info about output format here.  */
 } opcodes[MAX_OPCODES] =
 {
-/* Begin generated code: opcodes */
+    /* Begin generated code: opcodes */
     {"sll", OP_BUILD5(5, 5, 5, 0, 0), OP_BUILD5(11, 16, 6, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_IMM, 0, 0), INST_NO_OFFSET, 0, 2, 0x0, 0xffe0003f, nwop_sll, anyware_inst},
     {"movt", OP_BUILD5(5, 5, 0, 0, 0), OP_BUILD5(11, 21, 0, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, 0, 0, 0), INST_NO_OFFSET, 0, -1, 0x10001, 0xfc1f07ff, nwop_movt, anyware_inst},
     {"srl", OP_BUILD5(5, 5, 5, 0, 0), OP_BUILD5(11, 16, 6, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_IMM, 0, 0), INST_NO_OFFSET, 0, 2, 0x2, 0xffe0003f, nwop_srl, anyware_inst},
@@ -162,7 +163,7 @@ struct op_code_struct
     {"slt", OP_BUILD5(5, 5, 5, 0, 0), OP_BUILD5(11, 21, 16, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_REG, 0, 0), INST_NO_OFFSET, 0, -1, 0x2a, 0xfc0007ff, nwop_slt, anyware_inst},
     {"sltu", OP_BUILD5(5, 5, 5, 0, 0), OP_BUILD5(11, 21, 16, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_REG, 0, 0), INST_NO_OFFSET, 0, -1, 0x2b, 0xfc0007ff, nwop_sltu, anyware_inst},
     {"invalid", OP_BUILD5(0, 0, 0, 0, 0), OP_BUILD5(0, 0, 0, 0, 0), OP_BUILD5(0, 0, 0, 0, 0), INST_NO_OFFSET, 0, -1, 0xadbeef, 0xffffffff, nwop_invalid, anyware_inst},
-    {"bal", OP_BUILD5(5, 16, 0, 0, 0), OP_BUILD5(21, 0, 0, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_IMM, 0, 0, 0), INST_NO_OFFSET, 0, 1, 0x4110000, 0xfc1f0000, nwop_bal, anyware_inst},
+    {"bal", OP_BUILD5(5, 16, 0, 0, 0), OP_BUILD5(21, 0, 0, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_IMM, 0, 0, 0), INST_PC_OFFSET, 0, 1, 0x4110000, 0xfc1f0000, nwop_bal, anyware_inst},
     {"bltz", OP_BUILD5(5, 16, 0, 0, 0), OP_BUILD5(21, 0, 0, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_IMM, 0, 0, 0), INST_NO_OFFSET, 0, 1, 0x4000000, 0xfc1f0000, nwop_bltz, anyware_inst},
     {"bgez", OP_BUILD5(5, 16, 0, 0, 0), OP_BUILD5(21, 0, 0, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_IMM, 0, 0, 0), INST_NO_OFFSET, 0, 1, 0x4010000, 0xfc1f0000, nwop_bgez, anyware_inst},
     {"j", OP_BUILD5(26, 0, 0, 0, 0), OP_BUILD5(0, 0, 0, 0, 0), OP_BUILD5(ARG_TYPE_IMM, 0, 0, 0, 0), INST_NO_OFFSET, 0, 0, 0x8000000, 0xfc000000, nwop_j, anyware_inst},
@@ -220,19 +221,18 @@ struct op_code_struct
     {"ldc1", OP_BUILD5(5, 5, 16, 0, 0), OP_BUILD5(16, 21, 0, 0, 0), OP_BUILD5(ARG_TYPE_REG | ARG_TYPE_REG_FLOAT, ARG_TYPE_REG, ARG_TYPE_IMM, 0, 0), INST_NO_OFFSET, 0, 2, 0xd4000000, 0xfc000000, nwop_ldc1, anyware_inst},
     {"swc1", OP_BUILD5(5, 5, 16, 0, 0), OP_BUILD5(16, 21, 0, 0, 0), OP_BUILD5(ARG_TYPE_REG | ARG_TYPE_REG_FLOAT, ARG_TYPE_REG, ARG_TYPE_IMM, 0, 0), INST_NO_OFFSET, 0, 2, 0xe4000000, 0xfc000000, nwop_swc1, anyware_inst},
     {"sdc1", OP_BUILD5(5, 5, 16, 0, 0), OP_BUILD5(16, 21, 0, 0, 0), OP_BUILD5(ARG_TYPE_REG | ARG_TYPE_REG_FLOAT, ARG_TYPE_REG, ARG_TYPE_IMM, 0, 0), INST_NO_OFFSET, 0, 2, 0xf4000000, 0xfc000000, nwop_sdc1, anyware_inst},
-/* End generated code: opcodes */
+    /* End generated code: opcodes */
     {"", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 };
 
 /* Prefix for register names.  */
 char register_prefix[]         = "r";
-char F_register_prefix[]       = "fv";
+char F_register_prefix[]       = "f";
+char V_register_prefix[]       = "vV";
 
 char special_register_prefix[] = "spr";
 char fsl_register_prefix[]     = "rfsl";
 char pvr_register_prefix[]     = "rpvr";
-
-#define arg_prefix(type) ((type) & ARG_TYPE_REG ? ( (type) & ARG_TYPE_REG_FLOAT ? F_register_prefix : register_prefix ) : "")
 
 /* #defines for valid immediate range.  */
 #define MIN_IMM(op)  (0)
@@ -244,6 +244,8 @@ char pvr_register_prefix[]     = "rpvr";
 /* Begin generated code: invalid opcode */
 #define INVALID_INST 0xadbeef
 /* End generated code: invalid opcode */
+
+extern char* arg_prefix(unsigned rtype);
 
 /* Debuging function */
 #define fdd(format, arg...) printf("FD DEBUG: " format "\n", ##arg)

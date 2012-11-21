@@ -105,6 +105,7 @@ extern arelent * tc_gen_reloc                  (asection *, fixS *);
 extern void 	 cons_fix_new_nemaweaver        (fragS *, int, int, expressionS *);
 extern void 	 md_apply_fix3 		           (fixS *, valueT *, segT);
 
+
 #define EXTERN_FORCE_RELOC -1
 
 #define TARGET_USE_CFIPOP 1

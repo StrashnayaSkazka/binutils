@@ -31,6 +31,25 @@
 
 #define GET_ARGUMENT(i, instr, op)   (get_field (instr, ARG_MASK(i, op), ARG_SHIFT(i, op), ARG_TYPE(i,op)))
 
+
+char* arg_prefix(unsigned rtype)
+{
+    if (rtype & ARG_TYPE_REG)
+	if (FLOAT_REG(rtype)) {
+	    if (VECTOR_REG(rtype))
+	        return V_register_prefix+1;
+	    else
+		return F_register_prefix;
+	} else {
+	    if (VECTOR_REG(rtype))
+		return V_register_prefix;
+	    else
+		return register_prefix;
+	}
+    else
+	return "";
+}
+
 /* Return a textual representation of the reg */
 static char *
 get_field (unsigned long instr, unsigned long mask, unsigned short low, unsigned type)

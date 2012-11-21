@@ -38,7 +38,6 @@
 #endif
 
 void nemaweaver_generate_symbol (char *sym);
-static bfd_boolean check_spl_reg (unsigned *);
 
 /* Several places in this file insert raw instructions into the
    object. They should generate the instruction
@@ -447,7 +446,12 @@ struct spl_regiser
 static char* parse_reg (char* s, unsigned* reg, unsigned rtype)
 {
     struct spl_regiser *spl;
-    char* rprefix = FLOAT_REG(rtype) ? F_register_prefix : register_prefix;
+    char* rprefix = arg_prefix(rtype);
+
+    if (*rprefix == 0) {
+	as_fatal (_("Tried to parse an immediate as a register. Check binutils setup of opcodes."));
+	return s;
+    }
 
     /* Strip leading whitespace.  */
     while (ISSPACE (* s))
@@ -669,28 +673,6 @@ parse_cons_expression_nemaweaver (expressionS *exp, unsigned int size)
 	expression (exp);
 }
 
-/* This is the guts of the machine-dependent assembler.  STR points to a
-   machine dependent instruction.  This function is supposed to emit
-   the frags/bytes it assembles to.  */
-
-/* static char * str_nemaweaver_ro_anchor = "RO"; */
-/* static char * str_nemaweaver_rw_anchor = "RW"; */
-
-static bfd_boolean
-check_spl_reg (unsigned * reg)
-{
-    if (   (*reg == REG_MSR)   || (*reg == REG_PC)
-	   || (*reg == REG_EAR)   || (*reg == REG_ESR)
-	   || (*reg == REG_FSR)   || (*reg == REG_BTR) || (*reg == REG_EDR)
-	   || (*reg == REG_PID)   || (*reg == REG_ZPR)
-	   || (*reg == REG_TLBX)  || (*reg == REG_TLBLO)
-	   || (*reg == REG_TLBHI) || (*reg == REG_TLBSX)
-	   || (*reg >= REG_PVR+MIN_PVR_REGNUM && *reg <= REG_PVR+MAX_PVR_REGNUM))
-	return TRUE;
-
-    return FALSE;
-}
-
 /* Here we decide which fixups can be adjusted to make them relative to
    the beginning of the section instead of the symbol.  Basically we need
    to make sure that the dynamic relocations are done correctly, so in
@@ -805,10 +787,6 @@ void md_assemble(char * str)
 		as_fatal (_("Error in statement syntax"));
 		reg[reg_index] = 0;
 	    }
-
-	    if (check_spl_reg(reg + reg_index) &&
-		OP_BREAD5(arg_index, opcode->arg_type) & ARG_TYPE_REG_SPL)
-		as_fatal (_("Cannot use special register with this instruction"));
 
 	    argument = reg[reg_index-1];
 	} else if (OP_BREAD5(arg_index, opcode->arg_type) & ARG_TYPE_IMM) {
@@ -1103,6 +1081,8 @@ md_apply_fix (fixS *   fixP,
 	val >>= 16;
 	/* Fall through */
     case BFD_RELOC_NEMAWEAVER_32_LO:
+    case BFD_RELOC_16:
+    case BFD_RELOC_NEMAWEAVER_32_LO_PCREL:
 	*buf2 = (val >> 8) & 0xff;
 	*buf3 = val & 0xff;
 	break;
@@ -1441,4 +1421,22 @@ cons_fix_new_nemaweaver (fragS * frag,
 	}
     }
     fix_new_exp (frag, where, size, exp, 0, r);
+}
+
+char* arg_prefix(unsigned rtype)
+{
+    if (rtype & ARG_TYPE_REG)
+	if (FLOAT_REG(rtype)) {
+	    if (VECTOR_REG(rtype))
+	        return V_register_prefix+1;
+	    else
+		return F_register_prefix;
+	} else {
+	    if (VECTOR_REG(rtype))
+		return V_register_prefix;
+	    else
+		return register_prefix;
+	}
+    else
+	return "";
 }
