@@ -43,7 +43,7 @@ get_field (unsigned long instr, unsigned long mask, unsigned short low, unsigned
     }
 
     if (arg_prefix(type)[0])
-	sprintf (tmpstr, "%s%d", arg_prefix(type), x);
+	sprintf (tmpstr, "%c%d", *arg_prefix(type), x);
     else
 	sprintf (tmpstr, "0x%x", (unsigned)x);
 

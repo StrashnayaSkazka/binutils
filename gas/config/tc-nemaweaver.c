@@ -444,9 +444,10 @@ struct spl_regiser
 
 
 /* Parse a reg name */
-static char* parse_reg (char* s, unsigned* reg)
+static char* parse_reg (char* s, unsigned* reg, unsigned rtype)
 {
     struct spl_regiser *spl;
+    char* rprefix = FLOAT_REG(rtype) ? F_register_prefix : register_prefix;
 
     /* Strip leading whitespace.  */
     while (ISSPACE (* s))
@@ -462,17 +463,23 @@ static char* parse_reg (char* s, unsigned* reg)
 
     *reg = 0;
     /* Look for normal registers. */
-    if ((strchr(register_prefix, *s) || strchr(F_register_prefix, *s)) &&
-	ISDIGIT(*(++s)) ) {
-
-	while (ISDIGIT(*s)) {
-	    *reg *= 10;
-	    *reg += *s-'0';
-	    s++;
+    if (strchr(rprefix, *s)) {
+	char* cursor = s;
+	if (ISDIGIT(*(++cursor)) ) {
+	    while (ISDIGIT(*cursor)) {
+		*reg *= 10;
+		*reg += *cursor-'0';
+		cursor++;
+	    }
+	    return cursor;
 	}
+    } else {
+	as_bad (_("Expected one of '%s' as prfix, instead got %c (rest of line: %s)"), rprefix, *s, s);
+	SKIP_WORD(s);
 	return s;
     }
     as_bad (_("Expected register but instead got %s.6"), s);
+    SKIP_WORD(s);
     return s;
 }
 
@@ -790,9 +797,10 @@ void md_assemble(char * str)
     /* Read the arguments. */
     for (arg_index = 0; OP_BREAD5(arg_index, opcode->arg_type) != ARG_TYPE_INV && arg_index < ARG_MAX; arg_index++) {
 	if (OP_BREAD5(arg_index, opcode->arg_type) & ARG_TYPE_REG) {
- 	    /* The argument is a register. */
+	    /* The argument is a register. */
 	    if (strcmp (op_end, "")) {
-		op_end = parse_reg (op_end + 1, reg + reg_index++);
+		op_end = parse_reg (op_end + 1, reg + reg_index, OP_BREAD5(arg_index, opcode->arg_type));
+		reg_index++;
 	    } else {
 		as_fatal (_("Error in statement syntax"));
 		reg[reg_index] = 0;
@@ -807,19 +815,19 @@ void md_assemble(char * str)
 	    unsigned short offset_of_fix = IMM_POS (opcode);
 	    unsigned short fix_size = IMM_SIZE (opcode);
 
- 	    /* The argument is an imm value */
+	    /* The argument is an imm value */
 	    if (strcmp (op_end, ""))
 		op_end = parse_imm (op_end, &exp);
 	    else
 		as_fatal (_("Error in statement syntax"));
 
 	    if (exp.X_op != O_constant)
-	    	fix_new_exp (frag_now,
+		fix_new_exp (frag_now,
 			     output - frag_now->fr_literal + offset_of_fix, /* where the command in this frag begins + the offset that we want to use */
-	    		     fix_size,
-	    		     &exp,
-	    		     opcode->inst_offset_type,
-	    		     get_relocation_type(&exp, opcode));
+			     fix_size,
+			     &exp,
+			     opcode->inst_offset_type,
+			     get_relocation_type(&exp, opcode));
 
 	    /* ATTENTION: max imm should always ceil in order to pass jumps (right shifted 26bits). */
 	    argument = imm_value(&exp, get_relocation_type(&exp, opcode), MIN_IMM(opcode), MAX_IMM(opcode));
@@ -972,7 +980,7 @@ md_create_long_jump (char * ptr ATTRIBUTE_UNUSED,
 
 void
 md_convert_frag (bfd * abfd ATTRIBUTE_UNUSED,
-	         segT sec ATTRIBUTE_UNUSED,
+		 segT sec ATTRIBUTE_UNUSED,
 		 fragS * fragP)
 {
     fixS *fixP;
@@ -1048,13 +1056,13 @@ md_apply_fix (fixS *   fixP,
 	{
 	    val -= S_GET_VALUE (fixP->fx_addsy);
 	    if (val != 0 && ! fixP->fx_pcrel)
-            {
+	    {
 		/* In this case, the bfd_install_relocation routine will
 		   incorrectly add the symbol value back in.  We just want
 		   the addend to appear in the object file.
 		   FIXME: If this makes VALUE zero, we're toast.  */
 		val -= S_GET_VALUE (fixP->fx_addsy);
-            }
+	    }
 	}
     }
 
@@ -1092,29 +1100,29 @@ md_apply_fix (fixS *   fixP,
     switch (fixP->fx_r_type)
     {
     case BFD_RELOC_NEMAWEAVER_32_HI:
-    	val >>= 16;
-    	/* Fall through */
+	val >>= 16;
+	/* Fall through */
     case BFD_RELOC_NEMAWEAVER_32_LO:
-    	*buf2 = (val >> 8) & 0xff;
-    	*buf3 = val & 0xff;
-    	break;
+	*buf2 = (val >> 8) & 0xff;
+	*buf3 = val & 0xff;
+	break;
     case BFD_RELOC_NEMAWEAVER_26_JUMP:
 	if (val >> 28) {
 	    as_fatal(_("Too long jump."));
 	}
 
-    	val >>= 2; 		/* 32bits -> 30bits, now only use the 3 LSB */
-    	/* Fall through. */
+	val >>= 2; 		/* 32bits -> 30bits, now only use the 3 LSB */
+	/* Fall through. */
     case BFD_RELOC_32:
 	/* We assume that val plays well with buffer (aka they have 0s
 	 * at the areas they are not supposed to write.) */
 	*buf0 |= (val >> 24) & 0xff;
-    	*buf1 |= (val >> 16) & 0xff;
-    	*buf2 |= (val >> 8) & 0xff;
+	*buf1 |= (val >> 16) & 0xff;
+	*buf2 |= (val >> 8) & 0xff;
 	*buf3 |= val & 0xff;
-    	break;
+	break;
     default:
-    	as_bad(_("Unrecognized reloc type."));
+	as_bad(_("Unrecognized reloc type."));
     }
 
     if (fixP->fx_addsy == NULL)
@@ -1409,28 +1417,28 @@ cons_fix_new_nemaweaver (fragS * frag,
 	    as_bad(_("A 32bit symbol is being pushed into a smaller space."));
     } else {
 	switch (size)
-        {
-        case 1:
+	{
+	case 1:
 	    r = BFD_RELOC_8;
 	    break;
-        case 2:
+	case 2:
 	    r = BFD_RELOC_16;
 	    break;
-        case 4:
+	case 4:
 	    /* I am not sure if relocation refers to the entire
 	     * instruction or just the fixup. */
 	    /* as_bad (_("unsupported BFD relocation size %u"), size); */
 	    r = BFD_RELOC_32;
 	    break;
-        case 8:
+	case 8:
 	    as_bad (_("unsupported BFD relocation size %u"), size);
 	    r = BFD_RELOC_64;
 	    break;
-        default:
+	default:
 	    as_bad (_("unsupported BFD relocation size %u"), size);
 	    r = BFD_RELOC_32;
 	    break;
-        }
+	}
     }
     fix_new_exp (frag, where, size, exp, 0, r);
 }
