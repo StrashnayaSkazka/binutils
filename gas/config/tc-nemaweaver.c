@@ -432,16 +432,6 @@ md_begin (void)
 	hash_insert (opcode_hash_control, opcode->name, (char *) opcode);
 }
 
-struct spl_regiser
-{
-    char name[20];
-    unsigned value;
-} special_registers[] = {
-    {"zero", 0},
-    {"", 0}
-};
-
-
 /* Parse a reg name */
 static char* parse_reg (char* s, unsigned* reg, unsigned rtype)
 {
