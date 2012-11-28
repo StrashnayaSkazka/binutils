@@ -87,19 +87,19 @@ const char FLT_CHARS[] = "rRsSfFdDxXpP";
 
 /* Initialize the relax table.  */
 const relax_typeS md_relax_table[] =
-{
-    {          1,          1,                0, 0 },  /*  0: Unused.  */
-    {          1,          1,                0, 0 },  /*  1: Unused.  */
-    {          1,          1,                0, 0 },  /*  2: Unused.  */
-    {          1,          1,                0, 0 },  /*  3: Unused.  */
-    {      32767,     -32768,   INST_WORD_SIZE, LARGE_DEFINED_PC_OFFSET }, /* 4: DEFINED_PC_OFFSET.  */
-    {          1,          1,                0, 0 },                      /*  5: Unused.  */
-    {          1,          1,                0, 0 },                      /*  6: Unused.  */
-    { 0x7fffffff, 0x80000000, INST_WORD_SIZE*2, 0 },  /*  7: LARGE_DEFINED_PC_OFFSET.  */
-    { 0x7fffffff, 0x80000000, INST_WORD_SIZE*2, 0 },  /*  8: GOT_OFFSET.  */
-    { 0x7fffffff, 0x80000000, INST_WORD_SIZE*2, 0 },  /*  9: PLT_OFFSET.  */
-    { 0x7fffffff, 0x80000000, INST_WORD_SIZE*2, 0 },  /* 10: GOTOFF_OFFSET.  */
-};
+    {
+	{          1,          1,                0, 0 },  /*  0: Unused.  */
+	{          1,          1,                0, 0 },  /*  1: Unused.  */
+	{          1,          1,                0, 0 },  /*  2: Unused.  */
+	{          1,          1,                0, 0 },  /*  3: Unused.  */
+	{      32767,     -32768,   INST_WORD_SIZE, LARGE_DEFINED_PC_OFFSET }, /* 4: DEFINED_PC_OFFSET.  */
+	{          1,          1,                0, 0 },                      /*  5: Unused.  */
+	{          1,          1,                0, 0 },                      /*  6: Unused.  */
+	{ 0x7fffffff, 0x80000000, INST_WORD_SIZE*2, 0 },  /*  7: LARGE_DEFINED_PC_OFFSET.  */
+	{ 0x7fffffff, 0x80000000, INST_WORD_SIZE*2, 0 },  /*  8: GOT_OFFSET.  */
+	{ 0x7fffffff, 0x80000000, INST_WORD_SIZE*2, 0 },  /*  9: PLT_OFFSET.  */
+	{ 0x7fffffff, 0x80000000, INST_WORD_SIZE*2, 0 },  /* 10: GOTOFF_OFFSET.  */
+    };
 
 static struct hash_control * opcode_hash_control;	/* Opcode mnemonics.  */
 
@@ -174,69 +174,69 @@ static void nemaweaver_s_lcomm (int xxx ATTRIBUTE_UNUSED)
     *p = c;
     SKIP_WHITESPACE ();
     if (*input_line_pointer != ',')
-    {
-	as_bad (_("Expected comma after symbol-name: rest of line ignored."));
-	ignore_rest_of_line ();
-	return;
-    }
+	{
+	    as_bad (_("Expected comma after symbol-name: rest of line ignored."));
+	    ignore_rest_of_line ();
+	    return;
+	}
 
     input_line_pointer++;		/* skip ',' */
     if ((size = get_absolute_expression ()) < 0)
-    {
-	as_warn (_(".COMMon length (%ld.) <0! Ignored."), (long) size);
-	ignore_rest_of_line ();
-	return;
-    }
+	{
+	    as_warn (_(".COMMon length (%ld.) <0! Ignored."), (long) size);
+	    ignore_rest_of_line ();
+	    return;
+	}
 
     /* The third argument to .lcomm is the alignment.  */
     if (*input_line_pointer != ',')
 	align = 8;
     else
-    {
-	++input_line_pointer;
-	align = get_absolute_expression ();
-	if (align <= 0)
 	{
-	    as_warn (_("ignoring bad alignment"));
-	    align = 8;
+	    ++input_line_pointer;
+	    align = get_absolute_expression ();
+	    if (align <= 0)
+		{
+		    as_warn (_("ignoring bad alignment"));
+		    align = 8;
+		}
 	}
-    }
 
     *p = 0;
     symbolP = symbol_find_or_make (name);
     *p = c;
 
     if (S_IS_DEFINED (symbolP) && ! S_IS_COMMON (symbolP))
-    {
-	as_bad (_("Ignoring attempt to re-define symbol `%s'."),
-		S_GET_NAME (symbolP));
-	ignore_rest_of_line ();
-	return;
-    }
-
-    if (S_GET_VALUE (symbolP) && S_GET_VALUE (symbolP) != (valueT) size)
-    {
-	as_bad (_("Length of .lcomm \"%s\" is already %ld. Not changed to %ld."),
-		S_GET_NAME (symbolP),
-		(long) S_GET_VALUE (symbolP),
-		(long) size);
-
-	ignore_rest_of_line ();
-	return;
-    }
-
-    /* Allocate_bss.  */
-    if (align)
-    {
-	/* Convert to a power of 2 alignment.  */
-	for (align2 = 0; (align & 1) == 0; align >>= 1, ++align2);
-	if (align != 1)
 	{
-	    as_bad (_("Common alignment not a power of 2"));
+	    as_bad (_("Ignoring attempt to re-define symbol `%s'."),
+		    S_GET_NAME (symbolP));
 	    ignore_rest_of_line ();
 	    return;
 	}
-    }
+
+    if (S_GET_VALUE (symbolP) && S_GET_VALUE (symbolP) != (valueT) size)
+	{
+	    as_bad (_("Length of .lcomm \"%s\" is already %ld. Not changed to %ld."),
+		    S_GET_NAME (symbolP),
+		    (long) S_GET_VALUE (symbolP),
+		    (long) size);
+
+	    ignore_rest_of_line ();
+	    return;
+	}
+
+    /* Allocate_bss.  */
+    if (align)
+	{
+	    /* Convert to a power of 2 alignment.  */
+	    for (align2 = 0; (align & 1) == 0; align >>= 1, ++align2);
+	    if (align != 1)
+		{
+		    as_bad (_("Common alignment not a power of 2"));
+		    ignore_rest_of_line ();
+		    return;
+		}
+	}
     else
 	align2 = 0;
 
@@ -261,17 +261,17 @@ nemaweaver_s_rdata (int localvar)
 {
 #ifdef OBJ_ELF
     if (localvar == 0)
-    {
-	/* rodata.  */
-	obj_elf_change_section (".rodata", SHT_PROGBITS, SHF_ALLOC, 0, 0, 0, 0);
-	if (rodata_segment == 0)
-	    rodata_segment = subseg_new (".rodata", 0);
-    }
+	{
+	    /* rodata.  */
+	    obj_elf_change_section (".rodata", SHT_PROGBITS, SHF_ALLOC, 0, 0, 0, 0);
+	    if (rodata_segment == 0)
+		rodata_segment = subseg_new (".rodata", 0);
+	}
     else
-    {
-	/* 1 .sdata2.  */
-	obj_elf_change_section (".sdata2", SHT_PROGBITS, SHF_ALLOC, 0, 0, 0, 0);
-    }
+	{
+	    /* 1 .sdata2.  */
+	    obj_elf_change_section (".sdata2", SHT_PROGBITS, SHF_ALLOC, 0, 0, 0, 0);
+	}
 #else
     s_data (ignore);
 #endif
@@ -284,12 +284,12 @@ nemaweaver_s_bss (int localvar)
     if (localvar == 0) /* bss.  */
 	obj_elf_change_section (".bss", SHT_NOBITS, SHF_ALLOC+SHF_WRITE, 0, 0, 0, 0);
     else if (localvar == 1)
-    {
-	/* sbss.  */
-	obj_elf_change_section (".sbss", SHT_NOBITS, SHF_ALLOC+SHF_WRITE, 0, 0, 0, 0);
-	if (sbss_segment == 0)
-	    sbss_segment = subseg_new (".sbss", 0);
-    }
+	{
+	    /* sbss.  */
+	    obj_elf_change_section (".sbss", SHT_NOBITS, SHF_ALLOC+SHF_WRITE, 0, 0, 0, 0);
+	    if (sbss_segment == 0)
+		sbss_segment = subseg_new (".sbss", 0);
+	}
 #else
     s_data (ignore);
 #endif
@@ -302,7 +302,8 @@ nemaweaver_s_bss (int localvar)
 static void
 nemaweaver_s_func (int end_p ATTRIBUTE_UNUSED)
 {
-    *input_line_pointer = get_symbol_end ();
+    char c =  get_symbol_end ();
+    *input_line_pointer = c;
     s_func (1);
 }
 
@@ -325,30 +326,30 @@ nemaweaver_s_weakext (int ignore ATTRIBUTE_UNUSED)
     SKIP_WHITESPACE ();
 
     if (!is_end_of_line[(unsigned char) *input_line_pointer])
-    {
-	if (S_IS_DEFINED (symbolP))
 	{
-	    as_bad ("Ignoring attempt to redefine symbol `%s'.",
-		    S_GET_NAME (symbolP));
-	    ignore_rest_of_line ();
-	    return;
-	}
+	    if (S_IS_DEFINED (symbolP))
+		{
+		    as_bad ("Ignoring attempt to redefine symbol `%s'.",
+			    S_GET_NAME (symbolP));
+		    ignore_rest_of_line ();
+		    return;
+		}
 
-	if (*input_line_pointer == ',')
-	{
-	    ++input_line_pointer;
-	    SKIP_WHITESPACE ();
-	}
+	    if (*input_line_pointer == ',')
+		{
+		    ++input_line_pointer;
+		    SKIP_WHITESPACE ();
+		}
 
-	expression (&exp);
-	if (exp.X_op != O_symbol)
-	{
-	    as_bad ("bad .weakext directive");
-	    ignore_rest_of_line ();
-	    return;
+	    expression (&exp);
+	    if (exp.X_op != O_symbol)
+		{
+		    as_bad ("bad .weakext directive");
+		    ignore_rest_of_line ();
+		    return;
+		}
+	    symbol_set_value_expression (symbolP, &exp);
 	}
-	symbol_set_value_expression (symbolP, &exp);
-    }
 
     demand_empty_rest_of_line ();
 }
@@ -386,36 +387,36 @@ nemaweaver_s_set (int xxx ATTRIBUTE_UNUSED)
 /* If the pseudo-op is not found in this table, it searches in the obj-elf.c,
    and then in the read.c table.  */
 const pseudo_typeS md_pseudo_table[] =
-{
-    {"bss", nemaweaver_s_bss, 0},
-    {"data", nemaweaver_s_data, 0},
-    {"data16", cons, 2},     /* Same as hword.  */
-    {"data32", cons, 4},     /* Same as word.  */
-    {"data8", cons, 1},      /* Same as byte.  */
-    {"end", nemaweaver_s_func, 1}, /* Treat end as function end point.  */
-    {"ent", s_func, 0}, /* Treat ent as function entry point.  */
-    {"fpu", s_ignore, 0},
-    {"frame", s_ignore, 0},
-    {"gpword", s_rva, 4}, /* gpword label => store resolved label address in data section.  */
-    {"lcomm", nemaweaver_s_lcomm, 1},
-    {"mask", s_ignore, 0}, /* Emitted by gcc.  */
-    {"rodata", nemaweaver_s_rdata, 0},
-    {"sbss", nemaweaver_s_bss, 1},
-    {"sdata", nemaweaver_s_sdata, 0},
-    {"sdata2", nemaweaver_s_rdata, 1},
-    {"text", nemaweaver_s_text, 0},
-    {"weakext", nemaweaver_s_weakext, 0},
-    {"word", cons, 4},
+    {
+	{"bss", nemaweaver_s_bss, 0},
+	{"data", nemaweaver_s_data, 0},
+	{"data16", cons, 2},     /* Same as hword.  */
+	{"data32", cons, 4},     /* Same as word.  */
+	{"data8", cons, 1},      /* Same as byte.  */
+	{"end", nemaweaver_s_func, 1}, /* Treat end as function end point.  */
+	{"ent", s_func, 0}, /* Treat ent as function entry point.  */
+	{"fpu", s_ignore, 0},
+	{"frame", s_ignore, 0},
+	{"gpword", s_rva, 4}, /* gpword label => store resolved label address in data section.  */
+	{"lcomm", nemaweaver_s_lcomm, 1},
+	{"mask", s_ignore, 0}, /* Emitted by gcc.  */
+	{"rodata", nemaweaver_s_rdata, 0},
+	{"sbss", nemaweaver_s_bss, 1},
+	{"sdata", nemaweaver_s_sdata, 0},
+	{"sdata2", nemaweaver_s_rdata, 1},
+	{"text", nemaweaver_s_text, 0},
+	{"weakext", nemaweaver_s_weakext, 0},
+	{"word", cons, 4},
 
-    {"eabi_attribute", s_ignore, 0}, 	/* Emitted by ARM */
-    {"syntax", s_ignore, 0}, 	/* Emited by ARM */
-    {"zero", s_ignore, 0}, 	/* Emitted by ARM */
+	{"eabi_attribute", s_ignore, 0}, 	/* Emitted by ARM */
+	{"syntax", s_ignore, 0}, 	/* Emited by ARM */
+	{"zero", s_ignore, 0}, 	/* Emitted by ARM */
 
-    {"fmask", s_ignore, 0},  	/* Emited my MIPS */
+	{"fmask", s_ignore, 0},  	/* Emited my MIPS */
 
-    {"set", nemaweaver_s_set, 0}, /* Modified MIPS */
-    {NULL, NULL, 0}
-};
+	{"set", nemaweaver_s_set, 0}, /* Modified MIPS */
+	{NULL, NULL, 0}
+    };
 
 /* This function is called once, at assembler startup time.  This should
    set up all the tables, etc that the MD part of the assembler needs.  */
@@ -435,8 +436,9 @@ md_begin (void)
 /* Parse a reg name */
 static char* parse_reg (char* s, unsigned* reg, unsigned rtype)
 {
-    struct spl_regiser *spl;
+    struct spl_regiser *spl, *spl_ret;
     char* rprefix = arg_prefix(rtype);
+
 
     if (*rprefix == 0) {
 	as_fatal (_("Tried to parse an immediate as a register. Check binutils setup of opcodes."));
@@ -446,13 +448,23 @@ static char* parse_reg (char* s, unsigned* reg, unsigned rtype)
     /* Strip leading whitespace.  */
     while (ISSPACE (* s))
 	++ s;
+    if (*s == ',')
+	++s;
+    while (ISSPACE (* s))
+	++ s;
 
-    /* First check for special registers */
-    for (spl=special_registers; spl->name[0] != 0; spl++) {
+    /* First check for special registers. Find the one that matches
+       the largest portion. */
+    for (spl=special_registers, spl_ret = NULL; spl->name[0] != 0; spl++) {
 	if (strncasecmp(spl->name, s, strlen(spl->name)) == 0) {
-	    *reg = spl->value;
-	    return s + strlen(spl->name);
+	    if (spl_ret == NULL || strlen(spl->name) > strlen(spl_ret->name)) {
+		spl_ret = spl;
+	    }
 	}
+    }
+    if (spl_ret) {
+	*reg = spl_ret->value;
+	return s + strlen(spl_ret->name);
     }
 
     *reg = 0;
@@ -465,7 +477,10 @@ static char* parse_reg (char* s, unsigned* reg, unsigned rtype)
 		*reg += *cursor-'0';
 		cursor++;
 	    }
+
 	    return cursor;
+	} else {
+	    as_bad (_("Expected digit after reg prefix. Instead got %c (entire line: %s)."), *(cursor-1) , s);
 	}
     } else {
 	as_bad (_("Expected one of '%s' as prfix, instead got %c (rest of line: %s)"), rprefix, *s, s);
@@ -591,26 +606,26 @@ check_got (int * got_type, int * got_len)
     int first, second;
     char *tmpbuf;
 
-/* Find the start of "@GOT" or "@PLT" suffix (if any).  */
+    /* Find the start of "@GOT" or "@PLT" suffix (if any).  */
     for (atp = input_line_pointer; *atp != '@'; atp++)
 	if (is_end_of_line[(unsigned char) *atp])
 	    return NULL;
 
     if (strncmp (atp + 1, "GOTOFF", 5) == 0)
-    {
-	*got_len = 6;
-	*got_type = IMM_GOTOFF;
-    }
+	{
+	    *got_len = 6;
+	    *got_type = IMM_GOTOFF;
+	}
     else if (strncmp (atp + 1, "GOT", 3) == 0)
-    {
-	*got_len = 3;
-	*got_type = IMM_GOT;
-    }
+	{
+	    *got_len = 3;
+	    *got_type = IMM_GOT;
+	}
     else if (strncmp (atp + 1, "PLT", 3) == 0)
-    {
-	*got_len = 3;
-	*got_type = IMM_PLT;
-    }
+	{
+	    *got_len = 3;
+	    *got_type = IMM_PLT;
+	}
     else
 	return NULL;
 
@@ -639,26 +654,26 @@ parse_cons_expression_nemaweaver (expressionS *exp, unsigned int size)
 {
     /* We do not have 4byte immediates. */
     if (size == 4)
-    {
-	/* Handle @GOTOFF et.al.  */
-	char *save, *gotfree_copy;
-	int got_len, got_type;
-
-	save = input_line_pointer;
-	gotfree_copy = check_got (& got_type, & got_len);
-	if (gotfree_copy)
-	    input_line_pointer = gotfree_copy;
-
-	expression (exp);
-
-	if (gotfree_copy)
 	{
-	    exp->X_md = got_type;
-	    input_line_pointer = save + (input_line_pointer - gotfree_copy)
-		+ got_len;
-	    free (gotfree_copy);
+	    /* Handle @GOTOFF et.al.  */
+	    char *save, *gotfree_copy;
+	    int got_len, got_type;
+
+	    save = input_line_pointer;
+	    gotfree_copy = check_got (& got_type, & got_len);
+	    if (gotfree_copy)
+		input_line_pointer = gotfree_copy;
+
+	    expression (exp);
+
+	    if (gotfree_copy)
+		{
+		    exp->X_md = got_type;
+		    input_line_pointer = save + (input_line_pointer - gotfree_copy)
+			+ got_len;
+		    free (gotfree_copy);
+		}
 	}
-    }
     else
 	expression (exp);
 }
@@ -719,7 +734,7 @@ void md_assemble(char * str)
     char * output = NULL;
     int nlen = 0;
     unsigned long inst;
-    unsigned argument, amask, ashift;
+    unsigned argument = 0, amask = 0, ashift = 0;
     unsigned reg[ARG_MAX_REGS];
     unsigned isize;
     unsigned arg_index;
@@ -735,29 +750,30 @@ void md_assemble(char * str)
     for (op_start = op_end = str;
 	 *op_end && !is_end_of_line[(unsigned char) *op_end] && *op_end != ' ';
 	 op_end++)
-    {
-	name[nlen] = op_start[nlen];
-	nlen++;
-	if (nlen == sizeof (name) - 1)
-	    break;
-    }
+	{
+	    name[nlen] = op_start[nlen];
+	    nlen++;
+	    if (nlen == sizeof (name) - 1)
+		break;
+	}
 
     name [nlen] = 0;
 
     if (nlen == 0)
-    {
-	as_bad (_("can't find opcode "));
-	return;
-    }
+	{
+	    as_bad (_("can't find opcode "));
+	    return;
+	}
 
     /* Get the opcode struct. */
     opcode = (struct op_code_struct *) hash_find (opcode_hash_control, name);
-    if (opcode == NULL)
-    {
+    if (opcode == NULL) {
 	as_bad (_("unknown opcode \"%s\""), name);
 	return;
     }
-
+    if (opcode->instr_type == alias_and_warn) {
+	as_warn(_("You shouldnt use '%s'."), opcode->name);
+    }
 
     /* Unmasked bit sequence. */
     inst = opcode->bit_sequence;
@@ -800,6 +816,7 @@ void md_assemble(char * str)
 	    /* ATTENTION: max imm should always ceil in order to pass jumps (right shifted 26bits). */
 	    argument = imm_value(&exp, get_relocation_type(&exp, opcode), MIN_IMM(opcode), MAX_IMM(opcode));
 	} else {
+	    as_bad(_("Argument is neither immediate nor register..."));
 	    argument = 0;
 	}
 
@@ -811,7 +828,9 @@ void md_assemble(char * str)
     /* Clean up whitespaces. */
     while (ISSPACE (* op_end))
 	op_end ++;
-    if (*op_end) as_warn(_("Ignoring last part of the line '%s'."), op_end);
+    if (*op_end) {
+	as_warn(_("Ignoring last part of the line '%s' (entire line is %s)."), op_end, str);
+    }
 
     /* From opcode and read arguments create a bitfield. */
     output[0] = INST_BYTE0 (inst);
@@ -846,35 +865,35 @@ md_atof (int type, char * litP, int * sizeP)
     char * t;
 
     switch (type)
-    {
-    case 'f':
-    case 'F':
-    case 's':
-    case 'S':
-	prec = 2;
-	break;
+	{
+	case 'f':
+	case 'F':
+	case 's':
+	case 'S':
+	    prec = 2;
+	    break;
 
-    case 'd':
-    case 'D':
-    case 'r':
-    case 'R':
-	prec = 4;
-	break;
+	case 'd':
+	case 'D':
+	case 'r':
+	case 'R':
+	    prec = 4;
+	    break;
 
-    case 'x':
-    case 'X':
-	prec = 6;
-	break;
+	case 'x':
+	case 'X':
+	    prec = 6;
+	    break;
 
-    case 'p':
-    case 'P':
-	prec = 6;
-	break;
+	case 'p':
+	case 'P':
+	    prec = 6;
+	    break;
 
-    default:
-	*sizeP = 0;
-	return _("Bad call to MD_NTOF()");
-    }
+	default:
+	    *sizeP = 0;
+	    return _("Bad call to MD_NTOF()");
+	}
 
     t = atof_ieee (input_line_pointer, type, words);
 
@@ -884,21 +903,21 @@ md_atof (int type, char * litP, int * sizeP)
     *sizeP = prec * sizeof (LITTLENUM_TYPE);
 
     if (! target_big_endian)
-    {
-	for (i = prec - 1; i >= 0; i--)
 	{
-	    md_number_to_chars (litP, (valueT) words[i],
-				sizeof (LITTLENUM_TYPE));
-	    litP += sizeof (LITTLENUM_TYPE);
+	    for (i = prec - 1; i >= 0; i--)
+		{
+		    md_number_to_chars (litP, (valueT) words[i],
+					sizeof (LITTLENUM_TYPE));
+		    litP += sizeof (LITTLENUM_TYPE);
+		}
 	}
-    }
     else
 	for (i = 0; i < prec; i++)
-	{
-	    md_number_to_chars (litP, (valueT) words[i],
-				sizeof (LITTLENUM_TYPE));
-	    litP += sizeof (LITTLENUM_TYPE);
-	}
+	    {
+		md_number_to_chars (litP, (valueT) words[i],
+				    sizeof (LITTLENUM_TYPE));
+		litP += sizeof (LITTLENUM_TYPE);
+	    }
 
     return NULL;
 }
@@ -906,11 +925,11 @@ md_atof (int type, char * litP, int * sizeP)
 const char * md_shortopts = "";
 
 struct option md_longopts[] =
-{
-    {"EB", no_argument, NULL, OPTION_BIG_ENDIAN},
-    {"EL", no_argument, NULL, OPTION_LITTLE_ENDIAN},
-    { NULL, no_argument, NULL, 0}
-};
+    {
+	{"EB", no_argument, NULL, OPTION_BIG_ENDIAN},
+	{"EL", no_argument, NULL, OPTION_LITTLE_ENDIAN},
+	{ NULL, no_argument, NULL, 0}
+    };
 
 size_t md_longopts_size = sizeof (md_longopts);
 
@@ -1001,38 +1020,38 @@ md_apply_fix (fixS *   fixP,
     /* fixP->fx_offset is supposed to be set up correctly for all
        symbol relocations.  */
     if (fixP->fx_addsy == NULL)
-    {
-	if (!fixP->fx_pcrel)
-	    fixP->fx_offset = val; /* Absolute relocation.  */
-	else
-	    fprintf (stderr, "NULL symbol PC-relative relocation? offset = %08x, val = %08x\n",
-		     (unsigned int) fixP->fx_offset, (unsigned int) val);
-    }
+	{
+	    if (!fixP->fx_pcrel)
+		fixP->fx_offset = val; /* Absolute relocation.  */
+	    else
+		fprintf (stderr, "NULL symbol PC-relative relocation? offset = %08x, val = %08x\n",
+			 (unsigned int) fixP->fx_offset, (unsigned int) val);
+	}
 
     /* If we aren't adjusting this fixup to be against the section
        symbol, we need to adjust the value.  */
     if (fixP->fx_addsy != NULL)
-    {
-	if (S_IS_WEAK (fixP->fx_addsy)
-	    || (symbol_used_in_reloc_p (fixP->fx_addsy)
-		&& (((bfd_get_section_flags (stdoutput,
-					     S_GET_SEGMENT (fixP->fx_addsy))
-		      & SEC_LINK_ONCE) != 0)
-		    || !strncmp (segment_name (S_GET_SEGMENT (fixP->fx_addsy)),
-				 ".gnu.linkonce",
-				 sizeof (".gnu.linkonce") - 1))))
 	{
-	    val -= S_GET_VALUE (fixP->fx_addsy);
-	    if (val != 0 && ! fixP->fx_pcrel)
-	    {
-		/* In this case, the bfd_install_relocation routine will
-		   incorrectly add the symbol value back in.  We just want
-		   the addend to appear in the object file.
-		   FIXME: If this makes VALUE zero, we're toast.  */
-		val -= S_GET_VALUE (fixP->fx_addsy);
-	    }
+	    if (S_IS_WEAK (fixP->fx_addsy)
+		|| (symbol_used_in_reloc_p (fixP->fx_addsy)
+		    && (((bfd_get_section_flags (stdoutput,
+						 S_GET_SEGMENT (fixP->fx_addsy))
+			  & SEC_LINK_ONCE) != 0)
+			|| !strncmp (segment_name (S_GET_SEGMENT (fixP->fx_addsy)),
+				     ".gnu.linkonce",
+				     sizeof (".gnu.linkonce") - 1))))
+		{
+		    val -= S_GET_VALUE (fixP->fx_addsy);
+		    if (val != 0 && ! fixP->fx_pcrel)
+			{
+			    /* In this case, the bfd_install_relocation routine will
+			       incorrectly add the symbol value back in.  We just want
+			       the addend to appear in the object file.
+			       FIXME: If this makes VALUE zero, we're toast.  */
+			    val -= S_GET_VALUE (fixP->fx_addsy);
+			}
+		}
 	}
-    }
 
     /* If the fix is relative to a symbol which is not defined, or not
        in the same segment as the fix, we cannot resolve it here.  */
@@ -1040,15 +1059,15 @@ md_apply_fix (fixS *   fixP,
     if (fixP->fx_addsy != NULL
 	&& (!S_IS_DEFINED (fixP->fx_addsy)
 	    || (S_GET_SEGMENT (fixP->fx_addsy) != segment)))
-    {
-	fixP->fx_done = 0;
+	{
+	    fixP->fx_done = 0;
 #ifdef OBJ_ELF
-	/* For ELF we can just return and let the reloc that will be generated
-	   take care of everything.  For COFF we still have to insert 'val'
-	   into the insn since the addend field will be ignored.  */
-	/* return; */
+	    /* For ELF we can just return and let the reloc that will be generated
+	       take care of everything.  For COFF we still have to insert 'val'
+	       into the insn since the addend field will be ignored.  */
+	    /* return; */
 #endif
-    }
+	}
     /* All fixups in the text section must be handled in the linker.  */
     else if (segment->flags & SEC_CODE)
 	fixP->fx_done = 0;
@@ -1066,42 +1085,42 @@ md_apply_fix (fixS *   fixP,
     }
 
     switch (fixP->fx_r_type)
-    {
-    case BFD_RELOC_NEMAWEAVER_32_HI:
-	val >>= 16;
-	/* Fall through */
-    case BFD_RELOC_NEMAWEAVER_32_LO:
-    case BFD_RELOC_16:
-    case BFD_RELOC_NEMAWEAVER_32_LO_PCREL:
-	*buf2 = (val >> 8) & 0xff;
-	*buf3 = val & 0xff;
-	break;
-    case BFD_RELOC_NEMAWEAVER_26_JUMP:
-	if (val >> 28) {
-	    as_fatal(_("Too long jump."));
+	{
+	case BFD_RELOC_NEMAWEAVER_32_HI:
+	    val >>= 16;
+	    /* Fall through */
+	case BFD_RELOC_NEMAWEAVER_32_LO:
+	case BFD_RELOC_16:
+	case BFD_RELOC_NEMAWEAVER_32_LO_PCREL:
+	    *buf2 = (val >> 8) & 0xff;
+	    *buf3 = val & 0xff;
+	    break;
+	case BFD_RELOC_NEMAWEAVER_26_JUMP:
+	    if (val >> 28) {
+		as_fatal(_("Too long jump."));
+	    }
+
+	    val >>= 2; 		/* 32bits -> 30bits, now only use the 3 LSB */
+	    /* Fall through. */
+	case BFD_RELOC_32:
+	    /* We assume that val plays well with buffer (aka they have 0s
+	     * at the areas they are not supposed to write.) */
+	    *buf0 |= (val >> 24) & 0xff;
+	    *buf1 |= (val >> 16) & 0xff;
+	    *buf2 |= (val >> 8) & 0xff;
+	    *buf3 |= val & 0xff;
+	    break;
+	default:
+	    as_bad(_("Unrecognized reloc type."));
 	}
 
-	val >>= 2; 		/* 32bits -> 30bits, now only use the 3 LSB */
-	/* Fall through. */
-    case BFD_RELOC_32:
-	/* We assume that val plays well with buffer (aka they have 0s
-	 * at the areas they are not supposed to write.) */
-	*buf0 |= (val >> 24) & 0xff;
-	*buf1 |= (val >> 16) & 0xff;
-	*buf2 |= (val >> 8) & 0xff;
-	*buf3 |= val & 0xff;
-	break;
-    default:
-	as_bad(_("Unrecognized reloc type."));
-    }
-
     if (fixP->fx_addsy == NULL)
-    {
-	/* This fixup has been resolved.  Create a reloc in case the linker
-	   moves code around due to relaxing.  */
-	fixP->fx_r_type = BFD_RELOC_NONE;
-	fixP->fx_addsy = section_symbol (absolute_section);
-    }
+	{
+	    /* This fixup has been resolved.  Create a reloc in case the linker
+	       moves code around due to relaxing.  */
+	    fixP->fx_r_type = BFD_RELOC_NONE;
+	    fixP->fx_addsy = section_symbol (absolute_section);
+	}
     return;
 }
 
@@ -1111,10 +1130,10 @@ md_operand (expressionS * expressionP)
 {
     /* Ignore leading hash symbol, if present.  */
     if (*input_line_pointer == '#')
-    {
-	input_line_pointer ++;
-	expression (expressionP);
-    }
+	{
+	    input_line_pointer ++;
+	    expression (expressionP);
+	}
 }
 
 
@@ -1297,13 +1316,13 @@ md_pcrel_from_section (fixS * fixp, segT sec ATTRIBUTE_UNUSED)
 	    || (S_GET_SEGMENT (fixp->fx_addsy) != sec)))
 	return 0;
     else
-    {
-	/* The case where we are going to resolve things... */
-	if (fixp->fx_r_type == BFD_RELOC_64_PCREL)
-	    return  fixp->fx_where + fixp->fx_frag->fr_address + INST_WORD_SIZE;
-	else
-	    return  fixp->fx_where + fixp->fx_frag->fr_address;
-    }
+	{
+	    /* The case where we are going to resolve things... */
+	    if (fixp->fx_r_type == BFD_RELOC_64_PCREL)
+		return  fixp->fx_where + fixp->fx_frag->fr_address + INST_WORD_SIZE;
+	    else
+		return  fixp->fx_where + fixp->fx_frag->fr_address;
+	}
 #endif
 }
 
@@ -1326,12 +1345,12 @@ tc_gen_reloc (asection *seg ATTRIBUTE_UNUSED, fixS *fixP)
     reloc->address = fixP->fx_frag->fr_address + fixP->fx_where;
     reloc->howto = bfd_reloc_type_lookup (stdoutput, fixP->fx_r_type);
     if (reloc->howto == (reloc_howto_type *) NULL)
-    {
-	as_bad_where (fixP->fx_file, fixP->fx_line,
-		      _("reloc %d not supported by object file format. (Could not find a good howto. Symbol name is: %s)"),
-		      (int) fixP->fx_r_type, fixP->fx_addsy->bsym->name);
-	return NULL;
-    }
+	{
+	    as_bad_where (fixP->fx_file, fixP->fx_line,
+			  _("reloc %d not supported by object file format. (Could not find a good howto. Symbol name is: %s)"),
+			  (int) fixP->fx_r_type, fixP->fx_addsy->bsym->name);
+	    return NULL;
+	}
     reloc->addend = fixP->fx_offset;
 
     return reloc;
@@ -1343,16 +1362,16 @@ int
 md_parse_option (int c, char * arg ATTRIBUTE_UNUSED)
 {
     switch (c)
-    {
-    case OPTION_LITTLE_ENDIAN:
-	target_big_endian = 0;
-	break;
-    case OPTION_BIG_ENDIAN:
-	target_big_endian = 1;
-	break;
-    default:
-	return 0;
-    }
+	{
+	case OPTION_LITTLE_ENDIAN:
+	    target_big_endian = 0;
+	    break;
+	case OPTION_BIG_ENDIAN:
+	    target_big_endian = 1;
+	    break;
+	default:
+	    return 0;
+	}
     return 1;
 }
 
@@ -1387,28 +1406,28 @@ cons_fix_new_nemaweaver (fragS * frag,
 	    as_bad(_("A 32bit symbol is being pushed into a smaller space."));
     } else {
 	switch (size)
-	{
-	case 1:
-	    r = BFD_RELOC_8;
-	    break;
-	case 2:
-	    r = BFD_RELOC_16;
-	    break;
-	case 4:
-	    /* I am not sure if relocation refers to the entire
-	     * instruction or just the fixup. */
-	    /* as_bad (_("unsupported BFD relocation size %u"), size); */
-	    r = BFD_RELOC_32;
-	    break;
-	case 8:
-	    as_bad (_("unsupported BFD relocation size %u"), size);
-	    r = BFD_RELOC_64;
-	    break;
-	default:
-	    as_bad (_("unsupported BFD relocation size %u"), size);
-	    r = BFD_RELOC_32;
-	    break;
-	}
+	    {
+	    case 1:
+		r = BFD_RELOC_8;
+		break;
+	    case 2:
+		r = BFD_RELOC_16;
+		break;
+	    case 4:
+		/* I am not sure if relocation refers to the entire
+		 * instruction or just the fixup. */
+		/* as_bad (_("unsupported BFD relocation size %u"), size); */
+		r = BFD_RELOC_32;
+		break;
+	    case 8:
+		as_bad (_("unsupported BFD relocation size %u"), size);
+		r = BFD_RELOC_64;
+		break;
+	    default:
+		as_bad (_("unsupported BFD relocation size %u"), size);
+		r = BFD_RELOC_32;
+		break;
+	    }
     }
     fix_new_exp (frag, where, size, exp, 0, r);
 }
