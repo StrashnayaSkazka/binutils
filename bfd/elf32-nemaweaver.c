@@ -63,7 +63,7 @@ static reloc_howto_type nemaweaver_elf_howto_raw[] =
 	   2,			/* Rightshift.  */
 	   2,			/* Size (0 = byte, 1 = short, 2 = long).  */
 	   26,			/* Bitsize.  */
-	   TRUE,			/* PC_relative.  */
+	   FALSE,			/* PC_relative.  */
 	   0,			/* Bitpos.  */
 	   complain_overflow_signed, /* Complain on overflow.  */
 	   bfd_elf_generic_reloc,	/* Special Function.  */
@@ -72,6 +72,22 @@ static reloc_howto_type nemaweaver_elf_howto_raw[] =
 	   0,			/* Source Mask.  */
 	   0x03ffffff,		/* Dest Mask.  */
 	   FALSE), 		/* PC relative offset?  */
+
+    /* 16 bit jumps/branches */
+    HOWTO (R_NEMAWEAVER_16_JUMP_PCREL,   	/* Type.  */
+	   2,			/* Rightshift.  */
+	   1,			/* Size (0 = byte, 1 = short, 2 = long).  */
+	   16,			/* Bitsize.  */
+	   TRUE,			/* PC_relative.  */
+	   0,			/* Bitpos.  */
+	   complain_overflow_signed, /* Complain on overflow.  */
+	   bfd_elf_generic_reloc,	/* Special Function.  */
+	   "R_NEMAWEAVER_16_JUMP_PCREL", 	/* Name.  */
+	   FALSE,		/* Partial Inplace.  */
+	   0,			/* Source Mask.  */
+	   0x0000ffff,		/* Dest Mask.  */
+	   TRUE), 		/* PC relative offset?  */
+
 
     /* The high half of a PCREL 32 bit relocation.  */
     HOWTO (R_NEMAWEAVER_32_PCREL_HI,   	/* Type.  */
@@ -218,6 +234,9 @@ nemaweaver_elf_reloc_type_lookup (bfd * abfd ATTRIBUTE_UNUSED,
 	break;
     case BFD_RELOC_NEMAWEAVER_32_LO_PCREL:
 	nemaweaver_reloc = R_NEMAWEAVER_32_PCREL_LO;
+	break;
+    case BFD_RELOC_NEMAWEAVER_16_JUMP_PCREL:
+	nemaweaver_reloc = R_NEMAWEAVER_16_JUMP_PCREL;
 	break;
     case BFD_RELOC_NEMAWEAVER_26_JUMP:
 	nemaweaver_reloc = R_NEMAWEAVER_26_JUMP;
@@ -615,7 +634,9 @@ nemaweaver_elf_relocate_section (bfd *output_bfd,
 	    switch ((int) r_type)
 	    {
 		// Add relocations' special stuff here.
-
+	    case R_NEMAWEAVER_16_JUMP_PCREL:
+		offset--;
+		/* Fall through. */
 	    default :
 		r = _bfd_final_link_relocate (howto, input_bfd, input_section,
 					      contents, offset,

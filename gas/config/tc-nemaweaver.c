@@ -711,14 +711,18 @@ get_relocation_type (expressionS* e, struct op_code_struct *op)
 	/* We should never need to relocate this. */
 	return BFD_RELOC_NONE;
     } else if (IMM_SIZE(op) == 2) {
-	if (e->X_md & IMM_LOWER16)
+	if (e->X_md & IMM_LOWER16) {
 	    return op->inst_offset_type ? BFD_RELOC_NEMAWEAVER_32_LO_PCREL : BFD_RELOC_NEMAWEAVER_32_LO;
-	else if (e->X_md & IMM_HIGHER16)
+	} else if (e->X_md & IMM_HIGHER16) {
 	    return op->inst_offset_type ? BFD_RELOC_NEMAWEAVER_32_HI_PCREL : BFD_RELOC_NEMAWEAVER_32_HI;
-	else
+	} else {
 	    /* Return 16bit relocation. */
-	    /* Not reached for now */
-	    return BFD_RELOC_16;
+	    if (op->inst_offset_type) {
+		return BFD_RELOC_NEMAWEAVER_16_JUMP_PCREL;
+	    } else {
+		return BFD_RELOC_16;
+	    }
+	}
     } else if (IMM_SIZE(op) == 4) {
 	return BFD_RELOC_NEMAWEAVER_26_JUMP;
     }
@@ -759,11 +763,10 @@ void md_assemble(char * str)
 
     name [nlen] = 0;
 
-    if (nlen == 0)
-	{
-	    as_bad (_("can't find opcode "));
-	    return;
-	}
+    if (nlen == 0) {
+	as_bad (_("can't find opcode "));
+	return;
+    }
 
     /* Get the opcode struct. */
     opcode = (struct op_code_struct *) hash_find (opcode_hash_control, name);
@@ -1019,39 +1022,37 @@ md_apply_fix (fixS *   fixP,
 
     /* fixP->fx_offset is supposed to be set up correctly for all
        symbol relocations.  */
-    if (fixP->fx_addsy == NULL)
-	{
-	    if (!fixP->fx_pcrel)
-		fixP->fx_offset = val; /* Absolute relocation.  */
-	    else
-		fprintf (stderr, "NULL symbol PC-relative relocation? offset = %08x, val = %08x\n",
-			 (unsigned int) fixP->fx_offset, (unsigned int) val);
-	}
+    if (fixP->fx_addsy == NULL) {
+	if (!fixP->fx_pcrel)
+	    fixP->fx_offset = val; /* Absolute relocation.  */
+	else
+	    fprintf (stderr, "NULL symbol PC-relative relocation? offset = %08x, val = %08x\n",
+		     (unsigned int) fixP->fx_offset, (unsigned int) val);
+    }
 
     /* If we aren't adjusting this fixup to be against the section
        symbol, we need to adjust the value.  */
-    if (fixP->fx_addsy != NULL)
-	{
-	    if (S_IS_WEAK (fixP->fx_addsy)
-		|| (symbol_used_in_reloc_p (fixP->fx_addsy)
-		    && (((bfd_get_section_flags (stdoutput,
-						 S_GET_SEGMENT (fixP->fx_addsy))
-			  & SEC_LINK_ONCE) != 0)
-			|| !strncmp (segment_name (S_GET_SEGMENT (fixP->fx_addsy)),
-				     ".gnu.linkonce",
-				     sizeof (".gnu.linkonce") - 1))))
-		{
-		    val -= S_GET_VALUE (fixP->fx_addsy);
-		    if (val != 0 && ! fixP->fx_pcrel)
-			{
-			    /* In this case, the bfd_install_relocation routine will
-			       incorrectly add the symbol value back in.  We just want
-			       the addend to appear in the object file.
-			       FIXME: If this makes VALUE zero, we're toast.  */
-			    val -= S_GET_VALUE (fixP->fx_addsy);
-			}
-		}
-	}
+    if (fixP->fx_addsy != NULL) {
+	if (S_IS_WEAK (fixP->fx_addsy)
+	    || (symbol_used_in_reloc_p (fixP->fx_addsy)
+		&& (((bfd_get_section_flags (stdoutput,
+					     S_GET_SEGMENT (fixP->fx_addsy))
+		      & SEC_LINK_ONCE) != 0)
+		    || !strncmp (segment_name (S_GET_SEGMENT (fixP->fx_addsy)),
+				 ".gnu.linkonce",
+				 sizeof (".gnu.linkonce") - 1))))
+	    {
+		val -= S_GET_VALUE (fixP->fx_addsy);
+		if (val != 0 && ! fixP->fx_pcrel)
+		    {
+			/* In this case, the bfd_install_relocation routine will
+			   incorrectly add the symbol value back in.  We just want
+			   the addend to appear in the object file.
+			   FIXME: If this makes VALUE zero, we're toast.  */
+			val -= S_GET_VALUE (fixP->fx_addsy);
+		    }
+	    }
+    }
 
     /* If the fix is relative to a symbol which is not defined, or not
        in the same segment as the fix, we cannot resolve it here.  */
@@ -1071,9 +1072,9 @@ md_apply_fix (fixS *   fixP,
     /* All fixups in the text section must be handled in the linker.  */
     else if (segment->flags & SEC_CODE)
 	fixP->fx_done = 0;
-    else if (!fixP->fx_pcrel && fixP->fx_addsy != NULL)
+    else if (!fixP->fx_pcrel && fixP->fx_addsy != NULL) {
 	fixP->fx_done = 0;
-    else
+    } else
 	fixP->fx_done = 1;
 
     /* For endianness control. Make sure buf0 points at the MSB and
@@ -1086,6 +1087,12 @@ md_apply_fix (fixS *   fixP,
 
     switch (fixP->fx_r_type)
 	{
+	case BFD_RELOC_NEMAWEAVER_16_JUMP_PCREL:
+	    val = (val - 4) >> 2;
+	    /* Same as reloc 16. */
+	    *buf2 = (val >> 8) & 0xff;
+	    *buf3 = val & 0xff;
+	    break;
 	case BFD_RELOC_NEMAWEAVER_32_HI:
 	    val >>= 16;
 	    /* Fall through */
@@ -1114,13 +1121,12 @@ md_apply_fix (fixS *   fixP,
 	    as_bad(_("Unrecognized reloc type."));
 	}
 
-    if (fixP->fx_addsy == NULL)
-	{
-	    /* This fixup has been resolved.  Create a reloc in case the linker
-	       moves code around due to relaxing.  */
-	    fixP->fx_r_type = BFD_RELOC_NONE;
-	    fixP->fx_addsy = section_symbol (absolute_section);
-	}
+    if (fixP->fx_addsy == NULL) {
+	/* This fixup has been resolved.  Create a reloc in case the linker
+	   moves code around due to relaxing.  */
+	fixP->fx_r_type = BFD_RELOC_NONE;
+	fixP->fx_addsy = section_symbol (absolute_section);
+    }
     return;
 }
 
