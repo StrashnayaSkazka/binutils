@@ -135,6 +135,11 @@ get_field (unsigned long instr, unsigned long mask, unsigned short low, unsigned
 /*     return (strdup (tmpstr)); */
 /* } */
 
+#ifndef INVALID_INST
+#warning "There is no `invalid' instruction in the ISA. No worries, it is just good practice to have one. The disassembler uses it for error handling."
+#define INVALID_INST -1
+#endif
+
 static unsigned long read_insn_nemaweaver (bfd_vma memaddr,
 					   struct disassemble_info *info,
 					   struct op_code_struct **opr)
