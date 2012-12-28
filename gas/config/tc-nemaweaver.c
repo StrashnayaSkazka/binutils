@@ -573,7 +573,7 @@ parse_imm(char * s, expressionS * e)
 static unsigned int
 imm_value(const expressionS* e, enum bfd_reloc_code_real rel, int min, int max)
 {
-    unsigned ret = 0;
+    unsigned ret = e->X_add_number;
     if (e->X_md & IMM_HIGHER16 && e->X_md & IMM_LOWER16)
 	as_fatal(_("you can either get the higher16 OR lower16."));
     if (e->X_md & IMM_HIGHER16) {
