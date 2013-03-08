@@ -152,7 +152,7 @@ static reloc_howto_type nemaweaver_elf_howto_raw[] =
     /* The high half of a 32 bit relocation */
     HOWTO (R_NEMAWEAVER_32_HI,   /* Type.  */
 	   16,			/* Rightshift.  */
-	   2,			/* Size (0 = byte, 1 = short, 2 = long).  */
+	   1,			/* Size (0 = byte, 1 = short, 2 = long).  */
 	   16,			/* Bitsize.  */
 	   FALSE,		/* PC_relative.  */
 	   0,			/* Bitpos.  */
