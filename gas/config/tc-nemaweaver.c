@@ -810,15 +810,13 @@ void md_assemble(char * str)
 
 	    if (exp.X_op != O_constant) {
 		enum bfd_reloc_code_real reloc_type = get_relocation_type(&exp, opcode);
-		fixS* fixP = fix_new_exp (frag_now,
-					  output - frag_now->fr_literal + offset_of_fix, /* where the command in this frag begins + the offset that we want to use */
-					  fix_size,
-					  &exp,
-					  opcode->inst_offset_type,
-					  reloc_type);
+		fix_new_exp (frag_now,
+			     output - frag_now->fr_literal + offset_of_fix, /* where the command in this frag begins + the offset that we want to use */
+			     fix_size,
+			     &exp,
+			     opcode->inst_offset_type,
+			     reloc_type);
 
-		if (reloc_type == BFD_RELOC_NEMAWEAVER_32_HI || reloc_type == BFD_RELOC_NEMAWEAVER_32_HI)
-		    fixP->fx_no_overflow = 1;
 	    }
 
 	    /* ATTENTION: max imm should always ceil in order to pass jumps (right shifted 26bits). */
