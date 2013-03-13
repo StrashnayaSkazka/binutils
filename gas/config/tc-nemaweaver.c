@@ -786,8 +786,8 @@ void md_assemble(char * str)
     frag_now->fr_opcode = opcode->name;
 
     /* Read the arguments. */
-    for (arg_index = 0; OP_BREAD5(arg_index, opcode->arg_type) != ARG_TYPE_INV && arg_index < ARG_MAX; arg_index++) {
-	if (OP_BREAD5(arg_index, opcode->arg_type) & ARG_TYPE_REG) {
+    for (arg_index = 0; INVALID_ARG(arg_index, opcode) && arg_index < ARG_MAX; arg_index++) {
+	if (REGISTER_ARG(arg_index, opcode)) {
 	    /* The argument is a register. */
 	    if (strcmp (op_end, "")) {
 		op_end = parse_reg (op_end + 1, reg + reg_index, OP_BREAD5(arg_index, opcode->arg_type));
@@ -798,7 +798,7 @@ void md_assemble(char * str)
 	    }
 
 	    argument = reg[reg_index-1];
-	} else if (OP_BREAD5(arg_index, opcode->arg_type) & ARG_TYPE_IMM) {
+	} else if (IMMEDIATE_ARG(arg_index, opcode)) {
 	    unsigned short offset_of_fix = IMM_POS (opcode);
 	    unsigned short fix_size = IMM_SIZE (opcode);
 
@@ -1452,7 +1452,7 @@ cons_fix_new_nemaweaver (fragS * frag,
 
 char* arg_prefix(unsigned rtype)
 {
-    if (rtype & ARG_TYPE_REG)
+    if (REGISTER_TYPE(rtype))
 	if (FLOAT_REG(rtype)) {
 	    if (VECTOR_REG(rtype))
 	        return V_register_prefix+1;
