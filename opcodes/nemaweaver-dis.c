@@ -31,23 +31,21 @@
 
 #define GET_ARGUMENT(i, instr, op)   (get_field (instr, ARG_MASK(i, op), ARG_SHIFT(i, op), ARG_TYPE(i,op)))
 
-
-char* arg_prefix(unsigned rtype)
+char* arg_prefix(unsigned t)
 {
-    if (rtype & ARG_TYPE_REG)
-	if (FLOAT_REG(rtype)) {
-	    if (VECTOR_REG(rtype))
-	        return V_register_prefix+1;
-	    else
-		return F_register_prefix;
-	} else {
-	    if (VECTOR_REG(rtype))
-		return V_register_prefix;
-	    else
-		return register_prefix;
-	}
-    else
-	return "";
+    if (REG_FLOAT_TYPE(t))
+	return F_register_prefix;
+
+    if (REG_TYPE(t))
+	return register_prefix;
+
+    if (REG_VECTOR_TYPE(t))
+	return V_register_prefix;
+
+    if (REG_HALF_TYPE(t))
+	return H_register_prefix;
+
+    return "";
 }
 
 /* Return a textual representation of the reg */
@@ -231,9 +229,9 @@ int print_insn_nemaweaver (bfd_vma memaddr, struct disassemble_info * info)
     {
 	print_func (stream, "%s", op->name);
 
-	for (i=0 ; ARG_TYPE(i, op); i++) {
+	for (i=0 ; !INVALID_ARG(i, op); i++) {
 	    print_func (stream, " %s", GET_ARGUMENT(i, inst, op));
-	    if (ARG_TYPE(i+1, op))
+	    if (!INVALID_ARG(i+1, op))
 		print_func (stream, ",");
 	}
     }

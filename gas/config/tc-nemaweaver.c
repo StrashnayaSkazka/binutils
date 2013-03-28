@@ -571,15 +571,20 @@ parse_imm(char * s, expressionS * e)
 }
 
 static unsigned int
-imm_value(const expressionS* e, enum bfd_reloc_code_real rel, int min, int max)
+imm_value(const expressionS* e, enum bfd_reloc_code_real rel, int min ATTRIBUTE_UNUSED, int max ATTRIBUTE_UNUSED, char signed_value ATTRIBUTE_UNUSED)
 {
     unsigned ret = e->X_add_number;
-    if (e->X_md & IMM_HIGHER16 && e->X_md & IMM_LOWER16)
-	as_fatal(_("you can either get the higher16 OR lower16."));
-    if (e->X_md & IMM_HIGHER16) {
-	return e->X_add_number >> 16;
-    } else if (e->X_md & IMM_LOWER16 || rel == BFD_RELOC_16) {
-	return e->X_add_number & 0xffff;
+
+    if (e->X_md & IMM_HIGHER16 || e->X_md & IMM_LOWER16) {
+	if (e->X_md & IMM_HIGHER16 && e->X_md & IMM_LOWER16)
+	    as_fatal(_("you can either get the higher16 OR lower16."));
+	if (e->X_md & IMM_HIGHER16) {
+	    ret = e->X_add_number >> 16;
+	} else if (e->X_md & IMM_LOWER16 || rel == BFD_RELOC_16) {
+	    ret = e->X_add_number & 0xffff;
+	}
+
+	return ret;
     }
 
     if (rel == BFD_RELOC_NEMAWEAVER_26_JUMP) {
@@ -589,11 +594,13 @@ imm_value(const expressionS* e, enum bfd_reloc_code_real rel, int min, int max)
     if ((e->X_op != O_constant && e->X_op != O_symbol))
 	as_fatal (_("operand %d is neither a constant nor a symbol. Its X_op is %d"),
 		  (int) ret, (int)e->X_op);
-    else if ((e->X_op == O_constant) && ((int) ret < min
-					 || (int) ret > max))
+#ifndef SKIP_RANGE_CHECKS
+    else if ((e->X_op == O_constant) &&
+	     (((ret < (unsigned)min || ret > (unsigned)max) && !signed_value) ||
+	      (((int)ret < min || (int) ret > max) && signed_value)))
 	as_fatal (_("operand must be absolute in range 0x%x..0x%x, not 0x%x (original value: 0x%x)"),
 		  min, max, ret, (unsigned) e->X_add_number);
-
+#endif
     return ret;
 }
 
@@ -786,7 +793,7 @@ void md_assemble(char * str)
     frag_now->fr_opcode = opcode->name;
 
     /* Read the arguments. */
-    for (arg_index = 0; INVALID_ARG(arg_index, opcode) && arg_index < ARG_MAX; arg_index++) {
+    for (arg_index = 0; !INVALID_ARG(arg_index, opcode) && arg_index < ARG_MAX; arg_index++) {
 	if (REGISTER_ARG(arg_index, opcode)) {
 	    /* The argument is a register. */
 	    if (strcmp (op_end, "")) {
@@ -820,9 +827,13 @@ void md_assemble(char * str)
 	    }
 
 	    /* ATTENTION: max imm should always ceil in order to pass jumps (right shifted 26bits). */
-	    argument = imm_value(&exp, get_relocation_type(&exp, opcode), MIN_IMM(opcode), MAX_IMM(opcode));
+	    argument = imm_value(&exp,
+				 get_relocation_type(&exp, opcode),
+				 MIN_IMM(opcode),
+				 MAX_IMM(opcode),
+				 SIGNED_IMM(opcode));
 	} else {
-	    as_bad(_("Argument is neither immediate nor register..."));
+	    as_fatal (_("Argument is neither immediate nor register..."));
 	    argument = 0;
 	}
 
@@ -1102,8 +1113,10 @@ md_apply_fix (fixS *   fixP,
 	*buf2 = (val >> 8) & 0xff;
 	*buf3 = val & 0xff;
 	break;
-    case BFD_RELOC_NEMAWEAVER_32_HI:
     case BFD_RELOC_NEMAWEAVER_32_HI_PCREL:
+	val += (val & (1<<15)) ? 1<<16 : 0;
+	/* Fall through */
+    case BFD_RELOC_NEMAWEAVER_32_HI:
 	val >>= 16;
 	/* Fall through */
     case BFD_RELOC_NEMAWEAVER_32_LO_PCREL:
@@ -1448,22 +1461,4 @@ cons_fix_new_nemaweaver (fragS * frag,
 	}
     }
     fix_new_exp (frag, where, size, exp, 0, r);
-}
-
-char* arg_prefix(unsigned rtype)
-{
-    if (REGISTER_TYPE(rtype))
-	if (FLOAT_REG(rtype)) {
-	    if (VECTOR_REG(rtype))
-	        return V_register_prefix+1;
-	    else
-		return F_register_prefix;
-	} else {
-	    if (VECTOR_REG(rtype))
-		return V_register_prefix;
-	    else
-		return register_prefix;
-	}
-    else
-	return "";
 }

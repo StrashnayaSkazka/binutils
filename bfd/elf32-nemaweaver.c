@@ -141,7 +141,7 @@ static reloc_howto_type nemaweaver_elf_howto_raw[] =
 	   16,			/* Bitsize.  */
 	   FALSE,		/* PC_relative.  */
 	   0,			/* Bitpos.  */
-	   complain_overflow_signed, /* Complain on overflow.  */
+	   complain_overflow_dont, /* Complain on overflow.  */
 	   bfd_elf_generic_reloc,/* Special Function.  */
 	   "R_NEMAWEAVER_32_LO", /* Name.  */
 	   FALSE,		/* Partial Inplace.  */
