@@ -571,7 +571,7 @@ parse_imm(char * s, expressionS * e)
 }
 
 static unsigned int
-imm_value(const expressionS* e, enum bfd_reloc_code_real rel, int min ATTRIBUTE_UNUSED, int max ATTRIBUTE_UNUSED, char signed_value ATTRIBUTE_UNUSED)
+imm_value(const expressionS* e, enum bfd_reloc_code_real rel, int min ATTRIBUTE_UNUSED, int max ATTRIBUTE_UNUSED)
 {
     unsigned ret = e->X_add_number;
 
@@ -596,8 +596,8 @@ imm_value(const expressionS* e, enum bfd_reloc_code_real rel, int min ATTRIBUTE_
 		  (int) ret, (int)e->X_op);
 #ifndef SKIP_RANGE_CHECKS
     else if ((e->X_op == O_constant) &&
-	     (((ret < (unsigned)min || ret > (unsigned)max) && !signed_value) ||
-	      (((int)ret < min || (int) ret > max) && signed_value)))
+	     (((ret < (unsigned)min || ret > (unsigned)max) && !e->X_unsigned) ||
+	      (((int)ret < min || (int) ret > max) && e->X_unsigned)))
 	as_fatal (_("operand must be absolute in range 0x%x..0x%x, not 0x%x (original value: 0x%x)"),
 		  min, max, ret, (unsigned) e->X_add_number);
 #endif
@@ -810,9 +810,10 @@ void md_assemble(char * str)
 	    unsigned short fix_size = IMM_SIZE (opcode);
 
 	    /* The argument is an imm value */
-	    if (strcmp (op_end, ""))
+	    if (strcmp (op_end, "")) {
 		op_end = parse_imm (op_end, &exp);
-	    else
+		exp.X_unsigned = !SIGNED_IMM(opcode);
+	    } else
 		as_fatal (_("Error in statement syntax"));
 
 	    if (exp.X_op != O_constant) {
@@ -830,8 +831,7 @@ void md_assemble(char * str)
 	    argument = imm_value(&exp,
 				 get_relocation_type(&exp, opcode),
 				 MIN_IMM(opcode),
-				 MAX_IMM(opcode),
-				 SIGNED_IMM(opcode));
+				 MAX_IMM(opcode));
 	} else {
 	    as_fatal (_("Argument is neither immediate nor register..."));
 	    argument = 0;

@@ -631,6 +631,10 @@ nemaweaver_elf_relocate_section (bfd *output_bfd,
 		goto check_reloc;
 	    }
 
+	    if (r_type == R_NEMAWEAVER_32_PCREL_HI && (relocation & 0x8000)) {
+		relocation += 0x10000;
+	    }
+
 	    switch ((int) r_type)
 	    {
 		// Add relocations' special stuff here.
