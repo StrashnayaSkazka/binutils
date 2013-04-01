@@ -135,6 +135,36 @@ static reloc_howto_type nemaweaver_elf_howto_raw[] =
 	   FALSE),		/* pcrel_offset */
 
     /* The low half of a 32 bit relocation.  */
+    HOWTO (R_NEMAWEAVER_32_LO_SIGNED,	/* Type.  */
+	   0,			/* Rightshift.  */
+	   2,			/* Size (0 = byte, 1 = short, 2 = long).  */
+	   16,			/* Bitsize.  */
+	   FALSE,		/* PC_relative.  */
+	   0,			/* Bitpos.  */
+	   complain_overflow_dont,	/* Complain on overflow.  */
+	   bfd_elf_generic_reloc,	/* Special Function.  */
+	   "R_NEMAWEAVER_32_LO_SIGNED",	/* Name.  */
+	   FALSE,		/* Partial Inplace.  */
+	   0,			/* Source Mask.  */
+	   0x0000ffff,		/* Dest Mask.  */
+	   FALSE), 		/* PC relative offset?  */
+
+    /* The high half of a 32 bit relocation */
+    HOWTO (R_NEMAWEAVER_32_HI_SIGNED,	/* Type.  */
+	   16,			/* Rightshift.  */
+	   1,			/* Size (0 = byte, 1 = short, 2 = long).  */
+	   16,			/* Bitsize.  */
+	   FALSE,		/* PC_relative.  */
+	   0,			/* Bitpos.  */
+	   complain_overflow_signed,	/* Complain on overflow.  */
+	   bfd_elf_generic_reloc,	/* Special Function.  */
+	   "R_NEMAWEAVER_32_HI_SIGNED",	/* Name.  */
+	   FALSE,		/* Partial Inplace.  */
+	   0,			/* Source Mask.  */
+	   0x0000ffff,		/* Dest Mask.  */
+	   FALSE), 		/* PC relative offset?  */
+
+    /* The low half of a 32 bit relocation.  */
     HOWTO (R_NEMAWEAVER_32_LO,   /* Type.  */
 	   0,			/* Rightshift.  */
 	   2,			/* Size (0 = byte, 1 = short, 2 = long).  */
@@ -240,6 +270,12 @@ nemaweaver_elf_reloc_type_lookup (bfd * abfd ATTRIBUTE_UNUSED,
 	break;
     case BFD_RELOC_NEMAWEAVER_26_JUMP:
 	nemaweaver_reloc = R_NEMAWEAVER_26_JUMP;
+	break;
+    case BFD_RELOC_NEMAWEAVER_32_HI_SIGNED:
+	nemaweaver_reloc = R_NEMAWEAVER_32_HI_SIGNED;
+	break;
+    case BFD_RELOC_NEMAWEAVER_32_LO_SIGNED:
+	nemaweaver_reloc = R_NEMAWEAVER_32_LO_SIGNED;
 	break;
     case BFD_RELOC_NEMAWEAVER_32_HI:
 	nemaweaver_reloc = R_NEMAWEAVER_32_HI;
@@ -631,7 +667,7 @@ nemaweaver_elf_relocate_section (bfd *output_bfd,
 		goto check_reloc;
 	    }
 
-	    if (r_type == R_NEMAWEAVER_32_PCREL_HI && (relocation & 0x8000)) {
+	    if ((r_type == R_NEMAWEAVER_32_PCREL_HI || r_type == R_NEMAWEAVER_32_HI_SIGNED) && (relocation & 0x8000)) {
 		relocation += 0x10000;
 	    }
 

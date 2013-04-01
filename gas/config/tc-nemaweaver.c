@@ -719,9 +719,20 @@ get_relocation_type (expressionS* e, struct op_code_struct *op)
 	return BFD_RELOC_NONE;
     } else if (IMM_SIZE(op) == 2) {
 	if (e->X_md & IMM_LOWER16) {
-	    return op->inst_offset_type ? BFD_RELOC_NEMAWEAVER_32_LO_PCREL : BFD_RELOC_NEMAWEAVER_32_LO;
+	    if (op->inst_offset_type)
+		return BFD_RELOC_NEMAWEAVER_32_LO_PCREL;
+	    else if (e->X_unsigned)
+		return BFD_RELOC_NEMAWEAVER_32_LO;
+	    else
+		return BFD_RELOC_NEMAWEAVER_32_LO_SIGNED;
+
 	} else if (e->X_md & IMM_HIGHER16) {
-	    return op->inst_offset_type ? BFD_RELOC_NEMAWEAVER_32_HI_PCREL : BFD_RELOC_NEMAWEAVER_32_HI;
+	    if (op->inst_offset_type)
+		return BFD_RELOC_NEMAWEAVER_32_HI_PCREL;
+	    else if (e->X_unsigned)
+		return BFD_RELOC_NEMAWEAVER_32_HI;
+	    else
+		return BFD_RELOC_NEMAWEAVER_32_HI_SIGNED;
 	} else {
 	    /* Return 16bit relocation. */
 	    if (op->inst_offset_type) {
@@ -1114,6 +1125,7 @@ md_apply_fix (fixS *   fixP,
 	*buf3 = val & 0xff;
 	break;
     case BFD_RELOC_NEMAWEAVER_32_HI_PCREL:
+    case BFD_RELOC_NEMAWEAVER_32_HI_SIGNED:
 	val += (val & (1<<15)) ? 1<<16 : 0;
 	/* Fall through */
     case BFD_RELOC_NEMAWEAVER_32_HI:
@@ -1121,6 +1133,7 @@ md_apply_fix (fixS *   fixP,
 	/* Fall through */
     case BFD_RELOC_NEMAWEAVER_32_LO_PCREL:
     case BFD_RELOC_NEMAWEAVER_32_LO:
+    case BFD_RELOC_NEMAWEAVER_32_LO_SIGNED:
 	fixP->fx_no_overflow = 1;
 	/* Fall through */
     case BFD_RELOC_16:
@@ -1179,135 +1192,6 @@ md_estimate_size_before_relax (fragS * fragP ATTRIBUTE_UNUSED,
 {
     return 4;
 }
-/*     sbss_segment = bfd_get_section_by_name (stdoutput, ".sbss"); */
-/*     sbss2_segment = bfd_get_section_by_name (stdoutput, ".sbss2"); */
-/*     sdata_segment = bfd_get_section_by_name (stdoutput, ".sdata"); */
-/*     sdata2_segment = bfd_get_section_by_name (stdoutput, ".sdata2"); */
-
-/*     switch (fragP->fr_subtype) */
-/*     { */
-/*     case INST_PC_OFFSET: */
-/* 	/\* Used to be a PC-relative branch.  *\/ */
-/* 	if (!fragP->fr_symbol) */
-/*         { */
-/* 	    /\* We know the abs value: Should never happen.  *\/ */
-/* 	    as_bad (_("Absolute PC-relative value in relaxation code.  Assembler error.....")); */
-/* 	    abort (); */
-/*         } */
-/* 	else if ((S_GET_SEGMENT (fragP->fr_symbol) == segment_type)) */
-/*         { */
-/* 	    fragP->fr_subtype = DEFINED_PC_OFFSET; */
-/* 	    /\* Don't know now whether we need an imm instruction.  *\/ */
-/* 	    fragP->fr_var = INST_WORD_SIZE; */
-/*         } */
-/* 	else if (S_IS_DEFINED (fragP->fr_symbol) */
-/* 		 && (((S_GET_SEGMENT (fragP->fr_symbol))->flags & SEC_CODE) == 0)) */
-/*         { */
-/* 	    /\* Cannot have a PC-relative branch to a diff segment.  *\/ */
-/* 	    as_bad (_("PC relative branch to label %s which is not in the instruction space"), */
-/* 		    S_GET_NAME (fragP->fr_symbol)); */
-/* 	    fragP->fr_subtype = UNDEFINED_PC_OFFSET; */
-/* 	    fragP->fr_var = INST_WORD_SIZE*2; */
-/*         } */
-/* 	else */
-/* 	{ */
-/* 	    fragP->fr_subtype = UNDEFINED_PC_OFFSET; */
-/* 	    fragP->fr_var = INST_WORD_SIZE*2; */
-/* 	} */
-/* 	break; */
-
-/*     case INST_NO_OFFSET: */
-/* 	/\* Used to be a reference to somewhere which was unknown.  *\/ */
-/* 	if (fragP->fr_symbol) */
-/*         { */
-/* 	    if (fragP->fr_opcode == NULL) */
-/* 	    { */
-/* 		/\* Used as an absolute value.  *\/ */
-/* 		fragP->fr_subtype = DEFINED_ABS_SEGMENT; */
-/* 		/\* Variable part does not change.  *\/ */
-/* 		fragP->fr_var = INST_WORD_SIZE*2; */
-/*             } */
-/* 	    else if (streq (fragP->fr_opcode, str_nemaweaver_ro_anchor)) */
-/* 	    { */
-/* 		/\* It is accessed using the small data read only anchor.  *\/ */
-/* 		if ((S_GET_SEGMENT (fragP->fr_symbol) == &bfd_com_section) */
-/* 		    || (S_GET_SEGMENT (fragP->fr_symbol) == sdata2_segment) */
-/* 		    || (S_GET_SEGMENT (fragP->fr_symbol) == sbss2_segment) */
-/* 		    || (! S_IS_DEFINED (fragP->fr_symbol))) */
-/* 		{ */
-/* 		    fragP->fr_subtype = DEFINED_RO_SEGMENT; */
-/* 		    fragP->fr_var = INST_WORD_SIZE; */
-/*                 } */
-/* 		else */
-/* 		{ */
-/* 		    /\* Variable not in small data read only segment accessed */
-/* 		       using small data read only anchor.  *\/ */
-/* 		    char *file = fragP->fr_file ? fragP->fr_file : _("unknown"); */
-
-/* 		    as_bad_where (file, fragP->fr_line, */
-/* 				  _("Variable is accessed using small data read " */
-/* 				    "only anchor, but it is not in the small data " */
-/* 				    "read only section")); */
-/* 		    fragP->fr_subtype = DEFINED_RO_SEGMENT; */
-/* 		    fragP->fr_var = INST_WORD_SIZE; */
-/*                 } */
-/*             } */
-/* 	    else if (streq (fragP->fr_opcode, str_nemaweaver_rw_anchor)) */
-/* 	    { */
-/* 		if ((S_GET_SEGMENT (fragP->fr_symbol) == &bfd_com_section) */
-/* 		    || (S_GET_SEGMENT (fragP->fr_symbol) == sdata_segment) */
-/* 		    || (S_GET_SEGMENT (fragP->fr_symbol) == sbss_segment) */
-/* 		    || (!S_IS_DEFINED (fragP->fr_symbol))) */
-/* 	        { */
-/* 		    /\* It is accessed using the small data read write anchor.  *\/ */
-/* 		    fragP->fr_subtype = DEFINED_RW_SEGMENT; */
-/* 		    fragP->fr_var = INST_WORD_SIZE; */
-/*                 } */
-/* 		else */
-/* 		{ */
-/* 		    char *file = fragP->fr_file ? fragP->fr_file : _("unknown"); */
-
-/* 		    as_bad_where (file, fragP->fr_line, */
-/* 				  _("Variable is accessed using small data read " */
-/* 				    "write anchor, but it is not in the small data " */
-/* 				    "read write section")); */
-/* 		    fragP->fr_subtype = DEFINED_RW_SEGMENT; */
-/* 		    fragP->fr_var = INST_WORD_SIZE; */
-/*                 } */
-/*             } */
-/* 	    else */
-/* 	    { */
-/* 		as_bad (_("Incorrect fr_opcode value in frag.  Internal error.....")); */
-/* 		abort (); */
-/*             } */
-/* 	} */
-/* 	else */
-/* 	{ */
-/* 	    /\* We know the abs value: Should never happen.  *\/ */
-/* 	    as_bad (_("Absolute value in relaxation code.  Assembler error.....")); */
-/* 	    abort (); */
-/* 	} */
-/* 	break; */
-
-/*     case UNDEFINED_PC_OFFSET: */
-/*     case LARGE_DEFINED_PC_OFFSET: */
-/*     case DEFINED_ABS_SEGMENT: */
-/*     case GOT_OFFSET: */
-/*     case PLT_OFFSET: */
-/*     case GOTOFF_OFFSET: */
-/* 	fragP->fr_var = INST_WORD_SIZE*2; */
-/* 	break; */
-/*     case DEFINED_RO_SEGMENT: */
-/*     case DEFINED_RW_SEGMENT: */
-/*     case DEFINED_PC_OFFSET: */
-/* 	fragP->fr_var = INST_WORD_SIZE; */
-/* 	break; */
-/*     default: */
-/* 	abort (); */
-/*     } */
-
-/*     return fragP->fr_var; */
-/* } */
 
 /* Put number into target byte order.  */
 
