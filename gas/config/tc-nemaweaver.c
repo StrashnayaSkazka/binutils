@@ -611,9 +611,9 @@ imm_value(const expressionS* e, enum bfd_reloc_code_real rel, int min ATTRIBUTE_
 
 	if (rel == BFD_RELOC_NEMAWEAVER_26_JUMP || rel == BFD_RELOC_NEMAWEAVER_26_JUMP_PCREL) {
 	    if (!JUMP_LENGTH_CHECK(e->X_add_number, rel == BFD_RELOC_NEMAWEAVER_26_JUMP_PCREL))
-		as_fatal(_("Too long jump."));
+		as_fatal(_("Too long jump (%s address: 0x%08x)."),  rel == BFD_RELOC_NEMAWEAVER_26_JUMP_PCREL?"pcrel":"absolute",  (unsigned)e->X_add_number);
 
-	    ret = (e->X_add_number >> 2);
+	    ret = (e->X_add_number >> 2) & 0x03ffffff;
 	}
     }
 
@@ -1177,10 +1177,10 @@ md_apply_fix (fixS *   fixP,
 	/* Fall through */
     case BFD_RELOC_NEMAWEAVER_26_JUMP:
 	if (!JUMP_LENGTH_CHECK(val, pcrel)) {
-	    as_fatal(_("Too long jump."));
+	    as_fatal(_("Too long jump (%s address: 0x%08x)."), pcrel?"pcrel":"absolute", (unsigned)val);
 	}
 
-	val >>= 2; 		/* 32bits -> 30bits, now only use the 3 LSB */
+	val = (val >> 2) & 0x03ffffff; 		/* 32bits -> 30bits, now only use the 3 LSB */
 	/* Fall through. */
     case BFD_RELOC_32:
 	/* We assume that val plays well with buffer (aka they have 0s

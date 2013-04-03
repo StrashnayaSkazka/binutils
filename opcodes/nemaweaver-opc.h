@@ -80,10 +80,10 @@
 
 #define MAX_OPCODES 280
 
-#define ARG_IS(opcode, i, val) (OP_BREAD5((i), (opcode)->arg_type) == (val))
+#define ARG_IS(opcode, i, val) (OP_BREAD5((i), (opcode)->arg_type) == (unsigned)(val))
 
 /* Make sure we loose no information from the chopping. */
-#define JUMP_LENGTH_CHECK(val, pcr) ((pcr) && ((val)&(1<<31)) ? ((val)>>27) == 0x1ff : ((val)>>27) == 0x000 )
+#define JUMP_LENGTH_CHECK(val, pcr) (((pcr) && ((unsigned)(val)&(1<<31))) ? (((unsigned)(val)>>27) == 0x1f) : (((unsigned)(val)>>27) == 0x00) )
 
 /* Begin generated code: type constants */
 #define ARG_TYPE_REG 0x1
@@ -209,7 +209,7 @@ static struct op_code_struct
 {"bc1f", OP_BUILD5(16, 0, 0, 0, 0), OP_BUILD5(0, 0, 0, 0, 0), OP_BUILD5(ARG_TYPE_IMM, ARG_TYPE_INV, ARG_TYPE_INV, ARG_TYPE_INV, ARG_TYPE_INV), INST_PC_OFFSET, 0, 0, 0x45000000, 0xffff0000, nwop_bc1f, anyware_inst},
 {"jr", OP_BUILD5(5, 0, 0, 0, 0), OP_BUILD5(21, 0, 0, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_INV, ARG_TYPE_INV, ARG_TYPE_INV, ARG_TYPE_INV), INST_NO_OFFSET, 0, -1, 0x8, 0xfc1fffff, nwop_jr, anyware_inst},
 {"jalr", OP_BUILD5(5, 0, 0, 0, 0), OP_BUILD5(21, 0, 0, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_INV, ARG_TYPE_INV, ARG_TYPE_INV, ARG_TYPE_INV), INST_NO_OFFSET, 0, -1, 0xf809, 0xfc1fffff, nwop_jalr, anyware_inst},
-{"j", OP_BUILD5(26, 0, 0, 0, 0), OP_BUILD5(0, 0, 0, 0, 0), OP_BUILD5(ARG_TYPE_IMM, ARG_TYPE_INV, ARG_TYPE_INV, ARG_TYPE_INV, ARG_TYPE_INV), INST_NO_OFFSET, 0, 0, 0x8000000, 0xfc000000, nwop_j, anyware_inst},
+{"j", OP_BUILD5(26, 0, 0, 0, 0), OP_BUILD5(0, 0, 0, 0, 0), OP_BUILD5(ARG_TYPE_IMM, ARG_TYPE_INV, ARG_TYPE_INV, ARG_TYPE_INV, ARG_TYPE_INV), INST_PC_OFFSET, 0, 0, 0x8000000, 0xfc000000, nwop_j, anyware_inst},
 {"jal", OP_BUILD5(26, 0, 0, 0, 0), OP_BUILD5(0, 0, 0, 0, 0), OP_BUILD5(ARG_TYPE_IMM, ARG_TYPE_INV, ARG_TYPE_INV, ARG_TYPE_INV, ARG_TYPE_INV), INST_NO_OFFSET, 0, 0, 0xc000000, 0xfc000000, nwop_jal, anyware_inst},
 {"addiu", OP_BUILD5(5, 5, 16, 0, 0), OP_BUILD5(16, 21, 0, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_IMM, ARG_TYPE_INV, ARG_TYPE_INV), INST_NO_OFFSET, 0, 2, 0x24000000, 0xfc000000, nwop_addiu, anyware_inst},
 {"slti", OP_BUILD5(5, 5, 16, 0, 0), OP_BUILD5(16, 21, 0, 0, 0), OP_BUILD5(ARG_TYPE_REG, ARG_TYPE_REG, ARG_TYPE_IMM, ARG_TYPE_INV, ARG_TYPE_INV), INST_NO_OFFSET, 0, 2, 0x28000000, 0xfc000000, nwop_slti, anyware_inst},
@@ -320,7 +320,6 @@ static struct op_code_struct
 {"ld_vec", OP_BUILD5(5, 5, 16, 0, 0), OP_BUILD5(16, 21, 0, 0, 0), OP_BUILD5(ARG_TYPE_REG_VECTOR, ARG_TYPE_REG, ARG_TYPE_IMM, ARG_TYPE_INV, ARG_TYPE_INV), INST_NO_OFFSET, 0, 2, 0xd4000000, 0xfc000000, nwop_ld_vec, anyware_inst},
 {"st_vec", OP_BUILD5(5, 5, 16, 0, 0), OP_BUILD5(16, 21, 0, 0, 0), OP_BUILD5(ARG_TYPE_REG_VECTOR, ARG_TYPE_REG, ARG_TYPE_IMM, ARG_TYPE_INV, ARG_TYPE_INV), INST_NO_OFFSET, 0, 2, 0xf4000000, 0xfc000000, nwop_st_vec, anyware_inst},
     /* End generated code: opcodes */
-    {"nop", 0, 0, 0, 0, 0, -1, 0, 0, 0, alias_and_warn},
     {"", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 };
 
