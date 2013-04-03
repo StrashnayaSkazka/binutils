@@ -33,17 +33,24 @@
 
 char* arg_prefix(unsigned t)
 {
-    if (REG_FLOAT_TYPE(t))
-	return F_register_prefix;
-
-    if (REG_TYPE(t))
-	return register_prefix;
-
-    if (REG_VECTOR_TYPE(t))
-	return V_register_prefix;
-
-    if (REG_HALF_TYPE(t))
-	return H_register_prefix;
+    /* Begin generated code: type prefixes check */
+if (REG_TYPE(t))
+	return reg_prefix;
+if (REG_FLOAT_TYPE(t))
+	return reg_float_prefix;
+if (REG_VECTOR_TYPE(t))
+	return reg_vector_prefix;
+if (REG_HALF_TYPE(t))
+	return reg_half_prefix;
+if (IMM_TYPE(t))
+	return imm_prefix;
+if (UIMM_TYPE(t))
+	return uimm_prefix;
+if (SIMM_TYPE(t))
+	return simm_prefix;
+if (INV_TYPE(t))
+	return inv_prefix;
+    /* End generated code: type prefixes check */
 
     return "";
 }

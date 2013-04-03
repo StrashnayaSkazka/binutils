@@ -82,6 +82,9 @@
 
 #define ARG_IS(opcode, i, val) (OP_BREAD5((i), (opcode)->arg_type) == (val))
 
+/* Make sure we loose no information from the chopping. */
+#define JUMP_LENGTH_CHECK(val, pcr) ((pcr) && ((val)&(1<<31)) ? ((val)>>27) == 0x1ff : ((val)>>27) == 0x000 )
+
 /* Begin generated code: type constants */
 #define ARG_TYPE_REG 0x1
 #define ARG_TYPE_REG_FLOAT 0x2
@@ -481,11 +484,16 @@ static struct spl_regiser
 };
 
 
-/* Prefix for register names.  */
-static char register_prefix[]	__attribute__ ((unused)) = "r";
-static char F_register_prefix[] __attribute__ ((unused)) = "f";
-static char V_register_prefix[] __attribute__ ((unused)) = "vV";
-static char H_register_prefix[] __attribute__ ((unused)) = "h";
+/* Begin generated code: type prefixes */
+static char reg_prefix[] __attribute__ ((unused)) = "r";
+static char reg_float_prefix[] __attribute__ ((unused)) = "f";
+static char reg_vector_prefix[] __attribute__ ((unused)) = "v";
+static char reg_half_prefix[] __attribute__ ((unused)) = "h";
+static char imm_prefix[] __attribute__ ((unused)) = "";
+static char uimm_prefix[] __attribute__ ((unused)) = "";
+static char simm_prefix[] __attribute__ ((unused)) = "";
+static char inv_prefix[] __attribute__ ((unused)) = "";
+/* End generated code: type prefixes */
 
 /* #defines for valid immediate range.  */
 #define MIN_IMM(op)  (SIGNED_IMM(op) ? ((-1)<<(IMM_SIZE_BITS(op) - 1)) : (0))

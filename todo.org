@@ -115,3 +115,8 @@ main:
 
 ** TODO Testing
    Test with the emulator. Also document how you did it
+* March 2013
+** TODO create howtos
+** TODO employ them
+** TODO check their usage
+   They are just symbols found in some specific section (got).

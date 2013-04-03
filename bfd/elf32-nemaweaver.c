@@ -58,6 +58,20 @@ static reloc_howto_type nemaweaver_elf_howto_raw[] =
 	   0,			/* Dest Mask.  */
 	   FALSE),		/* PC relative offset?  */
 
+    HOWTO (R_NEMAWEAVER_26_JUMP_PCREL,   	/* Type.  */
+	   2,			/* Rightshift.  */
+	   2,			/* Size (0 = byte, 1 = short, 2 = long).  */
+	   26,			/* Bitsize.  */
+	   FALSE,			/* PC_relative.  */
+	   0,			/* Bitpos.  */
+	   complain_overflow_signed, /* Complain on overflow.  */
+	   bfd_elf_generic_reloc,	/* Special Function.  */
+	   "R_NEMAWEAVER_26_JUMP_PCREL", 	/* Name.  */
+	   FALSE,		/* Partial Inplace.  */
+	   0,			/* Source Mask.  */
+	   0x03ffffff,		/* Dest Mask.  */
+	   TRUE), 		/* PC relative offset?  */
+
     /* TODO: add a jumb fixup for 26bits of address. Fix it if broken */
     HOWTO (R_NEMAWEAVER_26_JUMP,   	/* Type.  */
 	   2,			/* Rightshift.  */
@@ -267,6 +281,9 @@ nemaweaver_elf_reloc_type_lookup (bfd * abfd ATTRIBUTE_UNUSED,
 	break;
     case BFD_RELOC_NEMAWEAVER_16_JUMP_PCREL:
 	nemaweaver_reloc = R_NEMAWEAVER_16_JUMP_PCREL;
+	break;
+    case BFD_RELOC_NEMAWEAVER_26_JUMP_PCREL:
+	nemaweaver_reloc = R_NEMAWEAVER_26_JUMP_PCREL;
 	break;
     case BFD_RELOC_NEMAWEAVER_26_JUMP:
 	nemaweaver_reloc = R_NEMAWEAVER_26_JUMP;
@@ -1624,6 +1641,34 @@ nemaweaver_elf_finish_dynamic_symbol (bfd *output_bfd,
 }
 
 
+static bfd_boolean
+nemaweaver_elf_create_dynamic_sections (bfd *dynobj, struct bfd_link_info *info)
+{
+    struct elf32_mb_link_hash_table *htab;
+
+    htab = elf32_mb_hash_table (info);
+    if (htab == NULL)
+	return FALSE;
+
+    if (!htab->sgot && !create_got_section (dynobj, info))
+	return FALSE;
+
+    if (!_bfd_elf_create_dynamic_sections (dynobj, info))
+	return FALSE;
+
+    htab->splt = bfd_get_section_by_name (dynobj, ".plt");
+    htab->srelplt = bfd_get_section_by_name (dynobj, ".rela.plt");
+    htab->sdynbss = bfd_get_section_by_name (dynobj, ".dynbss");
+    if (!info->shared)
+	htab->srelbss = bfd_get_section_by_name (dynobj, ".rela.bss");
+
+    if (!htab->splt || !htab->srelplt || !htab->sdynbss
+	|| (!info->shared && !htab->srelbss))
+	abort ();
+
+    return TRUE;
+}
+
 /* Finish up the dynamic sections.  */
 FUNC_UNUSED
 static bfd_boolean
@@ -1774,17 +1819,17 @@ nemaweaver_elf_add_symbol_hook (bfd *abfd,
 #define elf_backend_copy_indirect_symbol        nemaweaver_elf_copy_indirect_symbol
 #define bfd_elf32_bfd_link_hash_table_create    nemaweaver_elf_link_hash_table_create
 #define elf_backend_can_gc_sections		1
-/* #define elf_backend_can_refcount    		1 */
-/* #define elf_backend_want_got_plt    		1 */
-/* #define elf_backend_plt_readonly    		1 */
-/* #define elf_backend_got_header_size 		12 */
+#define elf_backend_can_refcount    		1
+#define elf_backend_want_got_plt    		1
+#define elf_backend_plt_readonly    		1
+#define elf_backend_got_header_size 		12
 #define elf_backend_rela_normal     		1
 
-/* #define elf_backend_adjust_dynamic_symbol       nemaweaver_elf_adjust_dynamic_symbol */
-/* #define elf_backend_create_dynamic_sections     nemaweaver_elf_create_dynamic_sections */
-/* #define elf_backend_finish_dynamic_sections     nemaweaver_elf_finish_dynamic_sections */
-/* #define elf_backend_finish_dynamic_symbol       nemaweaver_elf_finish_dynamic_symbol */
-/* #define elf_backend_size_dynamic_sections       nemaweaver_elf_size_dynamic_sections */
-/* #define elf_backend_add_symbol_hook		nemaweaver_elf_add_symbol_hook */
+#define elf_backend_adjust_dynamic_symbol       nemaweaver_elf_adjust_dynamic_symbol
+#define elf_backend_create_dynamic_sections     nemaweaver_elf_create_dynamic_sections
+#define elf_backend_finish_dynamic_sections     nemaweaver_elf_finish_dynamic_sections
+#define elf_backend_finish_dynamic_symbol       nemaweaver_elf_finish_dynamic_symbol
+#define elf_backend_size_dynamic_sections       nemaweaver_elf_size_dynamic_sections
+#define elf_backend_add_symbol_hook		nemaweaver_elf_add_symbol_hook
 
 #include "elf32-target.h"

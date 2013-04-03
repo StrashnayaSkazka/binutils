@@ -516,27 +516,47 @@ static char *parse_exp (char *s, expressionS *e)
 }
 
 /* Symbol modifiers (@GOT, @PLT, @GOTOFF).  */
-#define IMM_GOT    1
-#define IMM_PLT    2
-#define IMM_GOTOFF 3
-
-#define IMM_LOWER16 1
-#define IMM_HIGHER16 2
+#define IMM_LOWER16 0x1
+#define IMM_HIGHER16 0x2
+#define IMM_GOT    0x4
+#define IMM_PLT    0x8
+#define IMM_GOTOFF 0x10
 
 static symbolS * GOT_symbol;
 
 #define GOT_SYMBOL_NAME "_GLOBAL_OFFSET_TABLE_"
 
+#define MODIFIER_ENTRY(name, type) {name, type, sizeof(name)-1}
+
+static struct  _modifier_table {
+    char name[20];
+    unsigned symbol, name_size;
+} modifier_table[] __attribute__ ((unused)) = {
+    MODIFIER_ENTRY("lower16", IMM_LOWER16),
+    MODIFIER_ENTRY("higher16", IMM_HIGHER16),
+    MODIFIER_ENTRY("got", IMM_GOT),
+    MODIFIER_ENTRY("plt", IMM_PLT),
+    MODIFIER_ENTRY("gotoff", IMM_GOTOFF),
+    MODIFIER_ENTRY("", 0),
+};
+#undef MODIFIER_ENTRY
+
+/* s is a pointer at the start of the potential modifier. Unrecognized
+ * modifiers raise a warning. Empty modifiers are ignored (return
+ * 0). */
 static unsigned short
 parse_imm_flags (char* s)
 {
-    if (strncmp("lower16",s, sizeof("lower16") -1) == 0) {
-	return IMM_LOWER16;
+    int i;
+    if (*s == '%')
+	return 0;
+
+    for (i=0; modifier_table[i].symbol; i++) {
+	if (strncmp(modifier_table[i].name, s, modifier_table[i].name_size) == 0)
+	    return modifier_table[i].symbol;
     }
-    if (strncmp("higher16",s, sizeof("higher16") -1) == 0) {
-	return IMM_HIGHER16;
-    }
-    as_warn(_("Check your imm prefixes in '%s'"),s);
+
+    as_warn(_("You may want to check the type of ignored type modifier '%s'"), s);
     return 0;
 }
 
@@ -561,7 +581,7 @@ parse_imm(char * s, expressionS * e)
 	}
     }
 
-    /* s is now clean of prefixes. */
+/* s is now clean of prefixes. */
     s = parse_exp (s, e);	/* XXX: X_md is now our sophisticated version ;) */
     if (e->X_op == O_symbol) {
 	e->X_add_symbol->bsym->udata.i = e->X_md;
@@ -587,8 +607,14 @@ imm_value(const expressionS* e, enum bfd_reloc_code_real rel, int min ATTRIBUTE_
 	return ret;
     }
 
-    if (rel == BFD_RELOC_NEMAWEAVER_26_JUMP) {
-	ret = (e->X_add_number >> 2);
+    if (e->X_op == O_constant) {
+
+	if (rel == BFD_RELOC_NEMAWEAVER_26_JUMP || rel == BFD_RELOC_NEMAWEAVER_26_JUMP_PCREL) {
+	    if (!JUMP_LENGTH_CHECK(e->X_add_number, rel == BFD_RELOC_NEMAWEAVER_26_JUMP_PCREL))
+		as_fatal(_("Too long jump."));
+
+	    ret = (e->X_add_number >> 2);
+	}
     }
 
     if ((e->X_op != O_constant && e->X_op != O_symbol))
@@ -613,7 +639,7 @@ check_got (int * got_type, int * got_len)
     int first, second;
     char *tmpbuf;
 
-    /* Find the start of "@GOT" or "@PLT" suffix (if any).  */
+/* Find the start of "@GOT" or "@PLT" suffix (if any).  */
     for (atp = input_line_pointer; *atp != '@'; atp++)
 	if (is_end_of_line[(unsigned char) *atp])
 	    return NULL;
@@ -659,10 +685,10 @@ __attribute__((unused))
 static void
 parse_cons_expression_nemaweaver (expressionS *exp, unsigned int size)
 {
-    /* We do not have 4byte immediates. */
+/* We do not have 4byte immediates. */
     if (size == 4)
     {
-	/* Handle @GOTOFF et.al.  */
+/* Handle @GOTOFF et.al.  */
 	char *save, *gotfree_copy;
 	int got_len, got_type;
 
@@ -715,8 +741,9 @@ get_relocation_type (expressionS* e, struct op_code_struct *op)
     }
 
     if (IMM_SIZE_BITS(op) == 5) {
-	/* We should never need to relocate this. */
+        /* We should never need to relocate this. */
 	return BFD_RELOC_NONE;
+
     } else if (IMM_SIZE(op) == 2) {
 	if (e->X_md & IMM_LOWER16) {
 	    if (op->inst_offset_type)
@@ -734,7 +761,7 @@ get_relocation_type (expressionS* e, struct op_code_struct *op)
 	    else
 		return BFD_RELOC_NEMAWEAVER_32_HI_SIGNED;
 	} else {
-	    /* Return 16bit relocation. */
+            /* Return 16bit relocation. */
 	    if (op->inst_offset_type) {
 		return BFD_RELOC_NEMAWEAVER_16_JUMP_PCREL;
 	    } else {
@@ -1048,6 +1075,7 @@ md_apply_fix (fixS *   fixP,
     /* char *       file = fixP->fx_file ? fixP->fx_file : _("unknown"); */
     /* Note: use offsetT because it is signed, valueT is unsigned.  */
     offsetT      val  = (offsetT) * valp;
+    unsigned pcrel = 0;
     /* struct op_code_struct * opcode1; */
     /* unsigned long inst1; */
 
@@ -1140,8 +1168,11 @@ md_apply_fix (fixS *   fixP,
 	*buf2 = (val >> 8) & 0xff;
 	*buf3 = val & 0xff;
 	break;
+    case BFD_RELOC_NEMAWEAVER_26_JUMP_PCREL:
+	pcrel = 1;
+	/* Fall through */
     case BFD_RELOC_NEMAWEAVER_26_JUMP:
-	if (val >> 28) {
+	if (!JUMP_LENGTH_CHECK(val, pcrel)) {
 	    as_fatal(_("Too long jump."));
 	}
 
