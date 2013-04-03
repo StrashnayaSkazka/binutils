@@ -126,7 +126,8 @@
 #define UNSIGNED_ARG(arg_i, opcode) (UNSIGNED_TYPE( OP_BREAD5((arg_i), (opcode)->arg_type) ))
 /* End generated code: argument groups */
 
-#define SIGNED_IMM(opc) (!UNSIGNED_ARG((opc)->imm_arg, (opc)))
+#define PCREL_IMM(opc) ((opc)->inst_offset_type == INST_PC_OFFSET)
+#define SIGNED_IMM(opc) (!UNSIGNED_ARG((opc)->imm_arg, (opc)) || PCREL_IMM(opc))
 
 /* Build an int with thes 5 bit values */
 #define OP_BUILD5(a0, a1, a2, a3, a4) (((a0)&0x1f)<<0 | ((a1)&0x1f)<<5 | ((a2)&0x1f)<<10 | ((a3)&0x1f)<<15 | ((a4)&0x1f)<<20)

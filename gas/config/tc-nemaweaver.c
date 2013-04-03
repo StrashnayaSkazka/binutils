@@ -769,7 +769,11 @@ get_relocation_type (expressionS* e, struct op_code_struct *op)
 	    }
 	}
     } else if (IMM_SIZE(op) == 4) {
-	return BFD_RELOC_NEMAWEAVER_26_JUMP;
+	if (PCREL_IMM(op)) {
+	    return BFD_RELOC_NEMAWEAVER_26_JUMP_PCREL;
+	} else {
+	    return BFD_RELOC_NEMAWEAVER_26_JUMP;
+	}
     }
     /* Not reached */
     as_fatal(_("No suitable relocation type found."));
