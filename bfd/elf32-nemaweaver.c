@@ -62,7 +62,7 @@ static reloc_howto_type nemaweaver_elf_howto_raw[] =
 	   2,			/* Rightshift.  */
 	   2,			/* Size (0 = byte, 1 = short, 2 = long).  */
 	   26,			/* Bitsize.  */
-	   FALSE,			/* PC_relative.  */
+	   TRUE,			/* PC_relative.  */
 	   0,			/* Bitpos.  */
 	   complain_overflow_signed, /* Complain on overflow.  */
 	   bfd_elf_generic_reloc,	/* Special Function.  */
