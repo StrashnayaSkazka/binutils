@@ -436,14 +436,6 @@ md_begin (void)
 	hash_insert (opcode_hash_control, opcode->name, (char *) opcode);
 }
 
-static struct opcode_changer {
-    enum nemaweaver_instr o_from, o_to;
-    struct op_code_struct * from, *to;
-} opcode_map[] = {
-    {nwop_jal, nwop_jal_r, NULL, NULL},
-    {nwop_invalid, nwop_invalid, NULL, NULL},
-};
-
 #define OPCODE_MAP_END(oc) ((oc).o_from == nwop_invalid && (oc).o_from == nwop_invalid)
 
 static void initialize_opcode_changer_maybe(struct opcode_changer *ch)

@@ -22,6 +22,8 @@
 #ifndef	TC_NEMAWEAVER
 #define TC_NEMAWEAVER 1
 
+#include "../../opcodes/nemaweaver-opc.h"
+
 #define TARGET_ARCH	bfd_arch_nemaweaver
 /* Used to initialise target_big_endian.  */
 #define TARGET_BYTES_BIG_ENDIAN 1
@@ -118,5 +120,15 @@ extern void 	 md_apply_fix3 		           (fixS *, valueT *, segT);
 #define DWARF2_CIE_DATA_ALIGNMENT     (-4)
 
 #define EXTERNAL_SYMBOLS { "floorf" }
+
+
+static struct opcode_changer {
+    enum nemaweaver_instr o_from, o_to;
+    struct op_code_struct * from, *to;
+} opcode_map[] __attribute__((unused)) = {
+    /* Begin generated code: opcode map */
+    /* End generated code: opcode map */
+    {nwop_invalid, nwop_invalid, NULL, NULL},
+};
 
 #endif /* TC_NEMAWEAVER */
