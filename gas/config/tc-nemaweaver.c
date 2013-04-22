@@ -101,6 +101,9 @@ const relax_typeS md_relax_table[] =
     { 0x7fffffff, 0x80000000, INST_WORD_SIZE*2, 0 },  /* 10: GOTOFF_OFFSET.  */
 };
 
+typedef struct _string {char str[25];} string_t;
+static const char* external_symbols[] = {"floorf", "ceilf", NULL};
+
 static struct hash_control * opcode_hash_control;	/* Opcode mnemonics.  */
 
 static segT sbss_segment = 0; 	/* Small bss section.  */
@@ -433,6 +436,61 @@ md_begin (void)
 	hash_insert (opcode_hash_control, opcode->name, (char *) opcode);
 }
 
+static struct opcode_changer {
+    enum nemaweaver_instr o_from, o_to;
+    struct op_code_struct * from, *to;
+} opcode_map[] = {
+    {nwop_jal, nwop_jal_r, NULL, NULL},
+    {nwop_invalid, nwop_invalid, NULL, NULL},
+};
+
+#define OPCODE_MAP_END(oc) ((oc).o_from == nwop_invalid && (oc).o_from == nwop_invalid)
+
+static void initialize_opcode_changer_maybe(struct opcode_changer *ch)
+{
+    int i;
+
+    for (i = 0; i < MAX_OPCODES && (!ch->from || !ch->to); i++) {
+	if (opcodes[i].instr == ch->o_from) {
+	    ch->from = opcodes+i;
+	}
+
+	if (opcodes[i].instr == ch->o_to) {
+	    ch->to = opcodes+i;
+	}
+    }
+
+    if (!ch->from || !ch->to) {
+	as_fatal(_("Error initializing opcode changer."));
+    }
+}
+/* Change opcode in case we need different pc-rel state. */
+static void nemaweaver_change_opcode(unsigned long* inst, struct op_code_struct ** opcode )
+{
+    int i;
+    struct op_code_struct* replacement_opcode = NULL;
+    for (i = 0; !OPCODE_MAP_END(opcode_map[i]); i++) {
+	initialize_opcode_changer_maybe(opcode_map+i);
+
+	if (opcode_map[i].from->instr == (*opcode)->instr) {
+	    replacement_opcode = opcode_map[i].to;
+	    break;
+	}
+    }
+
+    if (!replacement_opcode) {
+	as_fatal(_("Could not replace opcode '%s'\n"), (*opcode)->name);
+    }
+
+    if (replacement_opcode->opcode_mask != (*opcode)->opcode_mask) {
+	as_fatal(_("Replacement opcode '%s' does not match '%s' opcode mask.\n"), replacement_opcode->name, (*opcode)->name);
+    }
+
+    /* Override the inst binary. */
+    *inst = FORCE_OPCODE_BITFIELD(*inst, replacement_opcode);
+    *opcode = replacement_opcode;
+}
+
 /* Parse a reg name */
 static char* parse_reg (char* s, unsigned* reg, unsigned rtype)
 {
@@ -518,9 +576,11 @@ static char *parse_exp (char *s, expressionS *e)
 /* Symbol modifiers (@GOT, @PLT, @GOTOFF).  */
 #define IMM_LOWER16 0x1
 #define IMM_HIGHER16 0x2
-#define IMM_GOT    0x4
-#define IMM_PLT    0x8
-#define IMM_GOTOFF 0x10
+#define IMM_EXTERNAL    0x4
+#define IMM_GOT 0x8
+#define IMM_GOTOFF 0x8
+#define IMM_PLT 0x8
+
 
 static symbolS * GOT_symbol;
 
@@ -531,12 +591,9 @@ static symbolS * GOT_symbol;
 static struct  _modifier_table {
     char name[20];
     unsigned symbol, name_size;
-} modifier_table[] __attribute__ ((unused)) = {
+} modifier_table[] = {
     MODIFIER_ENTRY("lower16", IMM_LOWER16),
     MODIFIER_ENTRY("higher16", IMM_HIGHER16),
-    MODIFIER_ENTRY("got", IMM_GOT),
-    MODIFIER_ENTRY("plt", IMM_PLT),
-    MODIFIER_ENTRY("gotoff", IMM_GOTOFF),
     MODIFIER_ENTRY("", 0),
 };
 #undef MODIFIER_ENTRY
@@ -572,6 +629,7 @@ static char *
 parse_imm(char * s, expressionS * e)
 {
     char* it;
+    int i;
     e->X_md = 0;
 
     for (it = s = nemaweaver_skip_lspaces(s); !IS_SPACE_OR_NUL(*it); it++) {
@@ -582,6 +640,13 @@ parse_imm(char * s, expressionS * e)
     }
 
 /* s is now clean of prefixes. */
+    for (i=0; external_symbols[i]; i++) {
+	if ( !strncmp(s, external_symbols[i], strlen(external_symbols[i])) ) {
+	    e->X_md |= IMM_EXTERNAL;
+	    break;
+	}
+    }
+
     s = parse_exp (s, e);	/* XXX: X_md is now our sophisticated version ;) */
     if (e->X_op == O_symbol) {
 	e->X_add_symbol->bsym->udata.i = e->X_md;
@@ -832,7 +897,6 @@ void md_assemble(char * str)
     isize = 4;
     reg_index = 0;
     output = frag_more(isize);
-    frag_now->fr_opcode = opcode->name;
 
     /* Read the arguments. */
     for (arg_index = 0; !INVALID_ARG(arg_index, opcode) && arg_index < ARG_MAX; arg_index++) {
@@ -858,8 +922,15 @@ void md_assemble(char * str)
 	    } else
 		as_fatal (_("Error in statement syntax"));
 
+	    /* XXX: If e->X_md is IMM_EXTERNAL change the jump opcode
+	     * to somethung more absolute. */
+	    if (exp.X_md & IMM_EXTERNAL) {
+		nemaweaver_change_opcode (&inst, &opcode);
+	    }
+
 	    if (exp.X_op != O_constant) {
 		enum bfd_reloc_code_real reloc_type = get_relocation_type(&exp, opcode);
+		frag_now->fr_opcode = opcode->name;
 		fix_new_exp (frag_now,
 			     output - frag_now->fr_literal + offset_of_fix, /* where the command in this frag begins + the offset that we want to use */
 			     fix_size,
@@ -1031,8 +1102,9 @@ md_convert_frag (bfd * abfd ATTRIBUTE_UNUSED,
 {
     fixS *fixP;
     char no_overflow = 0;
-    enum bfd_reloc_code_real relocation_type;
+    enum bfd_reloc_code_real relocation_type = 0;
 
+    printf ("Convertng frag...\n");
     switch (fragP->fr_symbol->bsym->udata.i) {
     case IMM_LOWER16:
 	relocation_type = BFD_RELOC_NEMAWEAVER_32_LO;
@@ -1041,6 +1113,9 @@ md_convert_frag (bfd * abfd ATTRIBUTE_UNUSED,
     case IMM_HIGHER16:
 	relocation_type = BFD_RELOC_NEMAWEAVER_32_HI;
 	no_overflow = 1;
+	break;
+    case IMM_EXTERNAL:
+	printf("found an external thingie!\n"); /* XXX */
 	break;
     default:
 	relocation_type = 0;

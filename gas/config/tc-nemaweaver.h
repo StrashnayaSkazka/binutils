@@ -117,5 +117,6 @@ extern void 	 md_apply_fix3 		           (fixS *, valueT *, segT);
 /* Registers are generally saved at negative offsets to the CFA.  */
 #define DWARF2_CIE_DATA_ALIGNMENT     (-4)
 
+#define EXTERNAL_SYMBOLS { "floorf" }
 
 #endif /* TC_NEMAWEAVER */
