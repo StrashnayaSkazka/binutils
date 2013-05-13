@@ -51,6 +51,7 @@ void nemaweaver_generate_symbol (char *sym);
 /* Options from the command line. */
 #define OPTION_LITTLE_ENDIAN OPTION_MD_BASE+1
 #define OPTION_BIG_ENDIAN OPTION_MD_BASE+2
+#define OPTION_NO_RELJUMP_CONVERSION OPTION_MD_BASE+3
 
 /* This array holds the chars that always start a comment.  If the
    pre-processor is disabled, these aren't very useful.  */
@@ -102,7 +103,7 @@ const relax_typeS md_relax_table[] =
 };
 
 typedef struct _string {char str[25];} string_t;
-static const char* external_symbols[] = {"floorf", "ceilf", NULL};
+static const char* external_symbols[] = EXTERNAL_SYMBOLS;
 
 static struct hash_control * opcode_hash_control;	/* Opcode mnemonics.  */
 
@@ -112,6 +113,7 @@ static segT sbss_segment = 0; 	/* Small bss section.  */
 /* static segT sdata2_segment = 0; /\* Small read-only section.  *\/ */
 static segT rodata_segment = 0; /* read-only section.  */
 
+static short no_reljump_conversion = 1;
 /* Generate a symbol for stabs information.  */
 
 void
@@ -456,11 +458,13 @@ static void initialize_opcode_changer_maybe(struct opcode_changer *ch)
 	as_fatal(_("Error initializing opcode changer."));
     }
 }
+
 /* Change opcode in case we need different pc-rel state. */
 static void nemaweaver_change_opcode(unsigned long* inst, struct op_code_struct ** opcode )
 {
     int i;
     struct op_code_struct* replacement_opcode = NULL;
+
     for (i = 0; !OPCODE_MAP_END(opcode_map[i]); i++) {
 	initialize_opcode_changer_maybe(opcode_map+i);
 
@@ -471,7 +475,7 @@ static void nemaweaver_change_opcode(unsigned long* inst, struct op_code_struct 
     }
 
     if (!replacement_opcode) {
-	as_fatal(_("Could not replace opcode '%s'\n"), (*opcode)->name);
+	as_fatal(_("Could not find replacement for opcode '%s'\n"), (*opcode)->name);
     }
 
     if (replacement_opcode->opcode_mask != (*opcode)->opcode_mask) {
@@ -632,12 +636,13 @@ parse_imm(char * s, expressionS * e)
     }
 
 /* s is now clean of prefixes. */
-    for (i=0; external_symbols[i]; i++) {
-	if ( !strncmp(s, external_symbols[i], strlen(external_symbols[i])) ) {
-	    e->X_md |= IMM_EXTERNAL;
-	    break;
+    if ( no_reljump_conversion )
+	for (i=0; external_symbols[i]; i++) {
+	    if ( !strncmp(s, external_symbols[i], strlen(external_symbols[i])) ) {
+		e->X_md |= IMM_EXTERNAL;
+		break;
+	    }
 	}
-    }
 
     s = parse_exp (s, e);	/* XXX: X_md is now our sophisticated version ;) */
     if (e->X_op == O_symbol) {
@@ -1050,6 +1055,7 @@ struct option md_longopts[] =
 {
     {"EB", no_argument, NULL, OPTION_BIG_ENDIAN},
     {"EL", no_argument, NULL, OPTION_LITTLE_ENDIAN},
+    {"no-reljump-conversion", no_argument, NULL, OPTION_NO_RELJUMP_CONVERSION},
     { NULL, no_argument, NULL, 0}
 };
 
@@ -1107,7 +1113,6 @@ md_convert_frag (bfd * abfd ATTRIBUTE_UNUSED,
 	no_overflow = 1;
 	break;
     case IMM_EXTERNAL:
-	printf("found an external thingie!\n"); /* XXX */
 	break;
     default:
 	relocation_type = 0;
@@ -1385,6 +1390,9 @@ md_parse_option (int c, char * arg ATTRIBUTE_UNUSED)
 	break;
     case OPTION_BIG_ENDIAN:
 	target_big_endian = 1;
+	break;
+    case OPTION_NO_RELJUMP_CONVERSION:
+	no_reljump_conversion = 1;
 	break;
     default:
 	return 0;

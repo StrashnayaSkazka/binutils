@@ -119,7 +119,106 @@ extern void 	 md_apply_fix3 		           (fixS *, valueT *, segT);
 /* Registers are generally saved at negative offsets to the CFA.  */
 #define DWARF2_CIE_DATA_ALIGNMENT     (-4)
 
-#define EXTERNAL_SYMBOLS { "floorf" }
+#define EXTERNAL_SYMBOLS { \
+    /* Begin generated code: external symbols */	\
+"_ct_B", \
+"_ct_C", \
+"_ct_D", \
+"_ct_L", \
+"_ct_P", \
+"_ct_S", \
+"_ct_U", \
+"_ct_X", \
+"_ct_code", \
+"errno", \
+"ff_ceil", \
+"ff_ceilf", \
+"ff_copysign", \
+"ff_copysignf", \
+"ff_cos", \
+"ff_cosf", \
+"ff_exp", \
+"ff_expf", \
+"ff_fabs", \
+"ff_fabsf", \
+"ff_floor", \
+"ff_floorf", \
+"ff_fracf", \
+"ff_frexp", \
+"ff_kernel_cos", \
+"ff_kernel_cosf", \
+"ff_kernel_sin", \
+"ff_kernel_sinf", \
+"ff_ldexp", \
+"ff_ldexpf", \
+"ff_log", \
+"ff_log10", \
+"ff_log10f", \
+"ff_logf", \
+"ff_pow", \
+"ff_powf", \
+"ff_rem_pio2", \
+"ff_rem_pio2f", \
+"ff_roundf", \
+"ff_sin", \
+"ff_sinf", \
+"ff_sqrt", \
+"ff_sqrtf", \
+"mm_free", \
+"mm_free_pool_size", \
+"mm_init", \
+"mm_malloc", \
+"mm_malloc_usable_size", \
+"mm_memcpy", \
+"mm_memset", \
+"mm_realloc", \
+"printf", \
+"med3", \
+"qsort", \
+"rand", \
+"srand", \
+"rand_r", \
+"exit", \
+"memchr", \
+"memcmp", \
+"memmove", \
+"strcat", \
+"strchr", \
+"strcmp", \
+"strcpy", \
+"strcspn", \
+"strerror", \
+"strlen", \
+"strncat", \
+"strncmp", \
+"strncpy", \
+"strpbrk", \
+"strrchr", \
+"strspn", \
+"strstr", \
+"strtok", \
+"strxfrm", \
+"_ct_B", \
+"_ct_C", \
+"_ct_D", \
+"_ct_L", \
+"_ct_P", \
+"_ct_S", \
+"_ct_U", \
+"_ct_X", \
+"strtol", \
+"_ct_B", \
+"_ct_C", \
+"_ct_D", \
+"_ct_L", \
+"_ct_P", \
+"_ct_S", \
+"_ct_U", \
+"_ct_X", \
+"strtoul", \
+"gettimeofday", \
+/* End generated code: external symbols */ \
+    NULL }
 
 
 static struct opcode_changer {
@@ -130,5 +229,6 @@ static struct opcode_changer {
     /* End generated code: opcode map */
     {nwop_invalid, nwop_invalid, NULL, NULL},
 };
+
 
 #endif /* TC_NEMAWEAVER */
