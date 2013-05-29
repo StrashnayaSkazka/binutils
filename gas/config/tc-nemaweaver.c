@@ -52,10 +52,11 @@ void nemaweaver_generate_symbol (char *sym);
 #define OPTION_LITTLE_ENDIAN OPTION_MD_BASE+1
 #define OPTION_BIG_ENDIAN OPTION_MD_BASE+2
 #define OPTION_NO_RELJUMP_CONVERSION OPTION_MD_BASE+3
+#define OPTION_RELJUMP_CONVERSION OPTION_MD_BASE+4
 
 /* This array holds the chars that always start a comment.  If the
    pre-processor is disabled, these aren't very useful.  */
-const char comment_chars[] = "#";
+    const char comment_chars[] = "#";
 
 const char line_separator_chars[] = ";";
 
@@ -113,7 +114,7 @@ static segT sbss_segment = 0; 	/* Small bss section.  */
 /* static segT sdata2_segment = 0; /\* Small read-only section.  *\/ */
 static segT rodata_segment = 0; /* read-only section.  */
 
-static short no_reljump_conversion = 1;
+static short reljump_conversion = 0;
 /* Generate a symbol for stabs information.  */
 
 void
@@ -635,8 +636,9 @@ parse_imm(char * s, expressionS * e)
 	}
     }
 
-/* s is now clean of prefixes. */
-    if ( no_reljump_conversion )
+    /* s is now clean of prefixes. */
+    /* XXX: maybe a '!' ? */
+    if ( reljump_conversion )
 	for (i=0; external_symbols[i]; i++) {
 	    if ( !strncmp(s, external_symbols[i], strlen(external_symbols[i])) ) {
 		e->X_md |= IMM_EXTERNAL;
@@ -1056,6 +1058,7 @@ struct option md_longopts[] =
     {"EB", no_argument, NULL, OPTION_BIG_ENDIAN},
     {"EL", no_argument, NULL, OPTION_LITTLE_ENDIAN},
     {"no-reljump-conversion", no_argument, NULL, OPTION_NO_RELJUMP_CONVERSION},
+    {"reljump-conversion", no_argument, NULL, OPTION_RELJUMP_CONVERSION},
     { NULL, no_argument, NULL, 0}
 };
 
@@ -1392,7 +1395,11 @@ md_parse_option (int c, char * arg ATTRIBUTE_UNUSED)
 	target_big_endian = 1;
 	break;
     case OPTION_NO_RELJUMP_CONVERSION:
-	no_reljump_conversion = 1;
+	/* The default. */
+	reljump_conversion = 0;
+	break;
+    case OPTION_RELJUMP_CONVERSION:
+	reljump_conversion = 1;
 	break;
     default:
 	return 0;

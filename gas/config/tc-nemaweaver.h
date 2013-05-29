@@ -121,16 +121,6 @@ extern void 	 md_apply_fix3 		           (fixS *, valueT *, segT);
 
 #define EXTERNAL_SYMBOLS { \
     /* Begin generated code: external symbols */	\
-"_ct_B", \
-"_ct_C", \
-"_ct_D", \
-"_ct_L", \
-"_ct_P", \
-"_ct_S", \
-"_ct_U", \
-"_ct_X", \
-"_ct_code", \
-"errno", \
 "ff_ceil", \
 "ff_ceilf", \
 "ff_copysign", \
@@ -164,59 +154,6 @@ extern void 	 md_apply_fix3 		           (fixS *, valueT *, segT);
 "ff_sinf", \
 "ff_sqrt", \
 "ff_sqrtf", \
-"mm_free", \
-"mm_free_pool_size", \
-"mm_init", \
-"mm_malloc", \
-"mm_malloc_usable_size", \
-"mm_memcpy", \
-"mm_memset", \
-"mm_realloc", \
-"printf", \
-"med3", \
-"qsort", \
-"rand", \
-"srand", \
-"rand_r", \
-"exit", \
-"memchr", \
-"memcmp", \
-"memmove", \
-"strcat", \
-"strchr", \
-"strcmp", \
-"strcpy", \
-"strcspn", \
-"strerror", \
-"strlen", \
-"strncat", \
-"strncmp", \
-"strncpy", \
-"strpbrk", \
-"strrchr", \
-"strspn", \
-"strstr", \
-"strtok", \
-"strxfrm", \
-"_ct_B", \
-"_ct_C", \
-"_ct_D", \
-"_ct_L", \
-"_ct_P", \
-"_ct_S", \
-"_ct_U", \
-"_ct_X", \
-"strtol", \
-"_ct_B", \
-"_ct_C", \
-"_ct_D", \
-"_ct_L", \
-"_ct_P", \
-"_ct_S", \
-"_ct_U", \
-"_ct_X", \
-"strtoul", \
-"gettimeofday", \
 /* End generated code: external symbols */ \
     NULL }
 
@@ -226,6 +163,7 @@ static struct opcode_changer {
     struct op_code_struct * from, *to;
 } opcode_map[] __attribute__((unused)) = {
     /* Begin generated code: opcode map */
+{nwop_jal, nwop_jal_a, NULL, NULL},
     /* End generated code: opcode map */
     {nwop_invalid, nwop_invalid, NULL, NULL},
 };
